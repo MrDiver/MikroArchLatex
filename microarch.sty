@@ -1,0 +1,1599 @@
+% This is the Microarchitecture package
+% 
+% (c) Tristan Schulz
+%
+%% This program can be redistributed and/or modified under the terms
+%% of the LaTeX Project Public License Distributed from CTAN archives
+%% in directory macros/latex/base/lppl.txt.
+% 
+\ProvidesPackage{microarch}
+  [12/05/2020 v0.01 Latex package for creating ARM Microarchitecture pictures. Build on tikz and pgf]
+
+\RequirePackage{pgf,tikz,ifthen,xcolor}
+\usetikzlibrary{calc,positioning,arrows,graphs,shapes.misc}
+
+%% =========================================
+%%
+%%          Defining pgfkeys stuff
+%%
+%% =========================================
+\def\microarchbasekey{/tikz/microarch}
+\pgfkeys{\microarchbasekey/.is family}
+\definecolor{electricblue}{rgb}{0.49, 0.98, 1.0}
+\definecolor{azure}{rgb}{0.1, 0.6, 1.0}
+
+\makeatletter
+
+\tikzset{help lines/.style={very thin,color=blue!50}}
+
+\def\pinlength{3mm}
+\def\textoffset{0.2ex}
+
+\pgfdeclareshape{dff}{
+  % The 'minimum width' and 'minimum height' keys, not the content, determine
+  % the size
+  \savedanchor\northeast{%
+    \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+    \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+    \pgf@x=0.5\pgf@x
+    \pgf@y=0.5\pgf@y
+  }
+  % This is redundant, but makes some things easier:
+  \savedanchor\southwest{%
+    \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+    \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+    \pgf@x=-0.5\pgf@x
+    \pgf@y=-0.5\pgf@y
+  }
+  % Inherit from rectangle
+  \inheritanchorborder[from=rectangle]
+
+  % Define same anchor a normal rectangle has
+  \anchor{center}{\pgfpointorigin}
+  \anchor{north}{\northeast \pgf@x=0pt}
+  \anchor{east}{\northeast \pgf@y=0pt}
+  \anchor{south}{\southwest \pgf@x=0pt}
+  \anchor{west}{\southwest \pgf@y=0pt}
+  \anchor{north east}{\northeast}
+  \anchor{north west}{\northeast \pgf@x=-\pgf@x}
+  \anchor{south west}{\southwest}
+  \anchor{south east}{\southwest \pgf@x=-\pgf@x}
+  \anchor{text}{
+    \pgfpointorigin
+    \advance\pgf@x by -.5\wd\pgfnodeparttextbox%
+    \advance\pgf@y by -.5\ht\pgfnodeparttextbox%
+    \advance\pgf@y by +.5\dp\pgfnodeparttextbox%
+  }
+
+  % Define anchors for signal ports
+  \anchor{D}{
+    \pgf@process{\northeast}%
+    \pgf@x=-1\pgf@x%
+    \pgf@y=.5\pgf@y%
+  }
+  \anchor{CLK}{
+    \pgf@process{\northeast}%
+    \pgf@x=-1\pgf@x%
+    \pgf@y=-.66666\pgf@y%
+  }
+  \anchor{CE}{
+    \pgf@process{\northeast}%
+    \pgf@x=-1\pgf@x%
+    \pgf@y=-0.33333\pgf@y%
+  }
+  \anchor{Q}{
+    \pgf@process{\northeast}%
+    \pgf@y=.5\pgf@y%
+  }
+  \anchor{Qn}{
+    \pgf@process{\northeast}%
+    \pgf@y=-.5\pgf@y%
+  }
+  \anchor{R}{
+    \pgf@process{\northeast}%
+    \pgf@x=0pt%
+  }
+  \anchor{S}{
+    \pgf@process{\northeast}%
+    \pgf@x=0pt%
+    \pgf@y=-\pgf@y%
+  }
+  % Draw the rectangle box and the port labels
+  \backgroundpath{
+    % Rectangle box
+    %\pgfpathrectanglecorners{\southwest}{\northeast}
+    % Angle (>) for clock input
+    \pgf@anchor@dff@CLK
+    \pgf@xa=\pgf@x \pgf@ya=\pgf@y
+    \pgf@xb=\pgf@x \pgf@yb=\pgf@y
+    \pgf@xc=\pgf@x \pgf@yc=\pgf@y
+    \pgfmathsetlength\pgf@x{1.6ex} % size depends on font size
+    \advance\pgf@ya by \pgf@x
+    \advance\pgf@xb by \pgf@x
+    \advance\pgf@yc by -\pgf@x
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    \pgfpathlineto{\pgfpoint{\pgf@xc}{\pgf@yc}}
+    \pgfclosepath
+
+    % Draw port labels
+    \begingroup
+    \tikzset{flip flop/port labels} % Use font from this style
+    \tikz@textfont
+
+    \pgf@anchor@dff@D
+    \pgftext[left,base,at={\pgfpoint{\pgf@x}{\pgf@y}},x=\pgfshapeinnerxsep]{\raisebox{-0.75ex}{D}}
+
+    \pgf@anchor@dff@CE
+    \pgftext[left,base,at={\pgfpoint{\pgf@x}{\pgf@y}},x=\pgfshapeinnerxsep]{\raisebox{-0.75ex}{CE}}
+
+    \pgf@anchor@dff@Q
+    \pgftext[right,base,at={\pgfpoint{\pgf@x}{\pgf@y}},x=-\pgfshapeinnerxsep]{\raisebox{-.75ex}{Q}}
+
+    \pgf@anchor@dff@Qn
+    \pgftext[right,base,at={\pgfpoint{\pgf@x}{\pgf@y}},x=-\pgfshapeinnerxsep]{\raisebox{-.75ex}{$\overline{\mbox{Q}}$}}
+
+    \pgf@anchor@dff@R
+    \pgftext[top,at={\pgfpoint{\pgf@x}{\pgf@y}},y=-\pgfshapeinnerysep]{R}
+
+    \pgf@anchor@dff@S
+    \pgftext[bottom,at={\pgfpoint{\pgf@x}{\pgf@y}},y=\pgfshapeinnerysep]{S}
+    \endgroup
+  }
+}
+
+\pgfdeclareshape{reg}{
+  % The 'minimum width' and 'minimum height' keys, not the content, determine
+  % the size
+  \savedanchor\northeast{%
+    \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+    \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+    \pgf@x=0.11\pgf@x
+    \pgf@y=0.15\pgf@y
+  }
+  % This is redundant, but makes some things easier:
+  \savedanchor\southwest{%
+    \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+    \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+    \pgf@x=-0.11\pgf@x
+    \pgf@y=-0.15\pgf@y
+  }
+  % Inherit from rectangle
+  \inheritanchorborder[from=rectangle]
+
+  % Define same anchor a normal rectangle has
+  \anchor{center}{\pgfpointorigin}
+  \anchor{north}{\northeast \pgf@x=0pt}
+  \anchor{east}{\northeast \pgf@y=0pt}
+  \anchor{south}{\southwest \pgf@x=0pt}
+  \anchor{west}{\southwest \pgf@y=0pt}
+  \anchor{north east}{\northeast}
+  \anchor{north west}{\northeast \pgf@x=-\pgf@x}
+  \anchor{south west}{\southwest}
+  \anchor{south east}{\southwest \pgf@x=-\pgf@x}
+  \anchor{text}{
+    \pgfpointorigin
+    \advance\pgf@x by -.5\wd\pgfnodeparttextbox%
+    \advance\pgf@y by -.5\ht\pgfnodeparttextbox%
+    \advance\pgf@y by +.5\dp\pgfnodeparttextbox%
+  }
+
+  % Define anchors for signal ports
+
+  \anchor{CLK}{
+    \pgf@process{\northeast}%
+    \pgf@x=0\pgf@x%
+    \pgf@y = 1\pgf@y%
+  }
+  \anchor{PCS}{
+    \pgf@process{\southwest}%
+    \pgf@xa=1\pgf@x%
+    \advance\pgf@xa by -\pinlength
+    \pgf@x = \pgf@xa
+    \pgf@y=0\pgf@y%
+  }
+  
+  \anchor{PC'}{\pgf@anchor@reg@PCS}
+  
+  \anchor{PC}{
+    \pgf@process{\northeast}%
+    \pgf@xa=1\pgf@x%
+    \advance\pgf@xa by \pinlength
+    \pgf@x = \pgf@xa
+    \pgf@y=0\pgf@y%
+  }
+
+  % Draw the rectangle box and the port labels
+  \backgroundpath{
+    % Rectangle box
+    \pgfpathrectanglecorners{\southwest}{\northeast}
+
+    % Drawing Triangle for clock input
+    % upper left x
+    \southwest \pgf@xa=\pgf@x 
+    \northeast \pgf@ya=\pgf@y \pgf@yb=\pgf@y \pgf@xb=\pgf@x
+    \pgf@anchor@reg@CLK
+    \pgf@xc=\pgf@x \pgf@yc=\pgf@y
+    \pgfmathsetlength\pgf@x{1.3ex}
+    \advance\pgf@xa by .15mm
+    \advance\pgf@xb by -.15mm
+    \advance\pgf@yc by -\pgf@x
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    \pgfpathlineto{\pgfpoint{\pgf@xc}{\pgf@yc}}
+    \pgfclosepath
+    
+    
+    \tikzset{flip flop/port labels} % Use font from this style
+    \tikz@textfont
+    
+    
+    
+    %Drawing CLK circuit
+    \pgf@anchor@reg@CLK
+    \pgf@xa=\pgf@x \pgf@ya=\pgf@y
+    \pgf@xb=\pgf@x \pgf@yb=\pgf@y
+    \pgfmathsetlength\pgf@x{1.8ex}
+    \advance\pgf@yb by \pgf@x
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    %Draw clock label
+    \pgf@anchor@reg@CLK\pgftext[base,at={\pgfpoint{\pgf@x}{\pgf@y}}]{\raisebox{2.5ex}{CLK}}
+
+    %Drawing PC circuit
+    \pgf@anchor@reg@PCS
+    \pgf@ya=\pgf@y \pgf@yb=\pgf@y \pgf@xa=\pgf@x
+    \pgf@anchor@reg@west
+    \pgf@xb=\pgf@x 
+    %\pgfmathsetlength\pgf@x{2.7ex}
+    %\advance\pgf@xb by \pgf@x
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    \pgf@anchor@reg@PCS\pgftext[base,at={\pgfpoint{\pgf@x+0.5ex}{\pgf@y}}]{\raisebox{.5ex}{PC'}}
+
+    %Drawing PC' circuit
+    \pgf@anchor@reg@PC
+    \pgf@ya=\pgf@y \pgf@yb=\pgf@y\pgf@xa=\pgf@x 
+    \pgf@anchor@reg@east
+    \pgf@xb=\pgf@x 
+    %\pgfmathsetlength\pgf@x{2.5ex}
+    %\advance\pgf@xb by \pgf@x
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    \pgf@anchor@reg@PC\pgftext[base,at={\pgfpoint{\pgf@x}{\pgf@y}}]{\raisebox{.5ex}{PC}}
+  }
+  
+}
+
+\pgfdeclareshape{instmem}{
+  % The 'minimum width' and 'minimum height' keys, not the content, determine
+  % the size
+  \savedanchor\northeast{%
+    \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+    \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+    \pgf@x=0.4\pgf@x
+    \pgf@y=0.25\pgf@y
+  }
+  % This is redundant, but makes some things easier:
+  \savedanchor\southwest{%
+    \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+    \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+    \pgf@x=-0.4\pgf@x
+    \pgf@y=-0.45\pgf@y
+  }
+  % Inherit from rectangle
+  \inheritanchorborder[from=rectangle]
+
+  % Define same anchor a normal rectangle has
+  \anchor{center}{\pgfpointorigin}
+  \anchor{north}{\northeast \pgf@x=0pt}
+  \anchor{east}{\northeast \pgf@y=0pt}
+  \anchor{south}{\southwest \pgf@x=0pt}
+  \anchor{west}{\southwest \pgf@y=0pt}
+  \anchor{north east}{\northeast}
+  \anchor{north west}{\northeast \pgf@x=-\pgf@x}
+  \anchor{south west}{\southwest}
+  \anchor{south east}{\southwest \pgf@x=-\pgf@x}
+  \anchor{text}{
+    \pgfpointorigin
+    \advance\pgf@x by -.5\wd\pgfnodeparttextbox%
+    \advance\pgf@y by -.5\ht\pgfnodeparttextbox%
+    \advance\pgf@y by +.5\dp\pgfnodeparttextbox%
+  }
+
+  % Define anchors for signal ports
+
+  \anchor{A}{
+    \pgf@process{\southwest}%
+    \pgf@xa=1\pgf@x%
+    \advance\pgf@xa by -\pinlength
+    \pgf@x = \pgf@xa
+    \pgf@y=0\pgf@y%
+  }
+  
+  \anchor{RD}{
+    \pgf@process{\northeast}%
+    \pgf@xa=1\pgf@x%
+    \advance\pgf@xa by \pinlength
+    \pgf@x = \pgf@xa
+    \pgf@y=0\pgf@y%
+  }
+
+  % Draw the rectangle box and the port labels
+  \backgroundpath{
+    % Rectangle box
+    \pgfpathrectanglecorners{\southwest}{\northeast}
+
+    \tikzset{flip flop/port labels} % Use font from this style
+    \tikz@textfont
+    
+    %Drawing MID label
+    \pgf@anchor@instmem@center \pgftext[base,at={\pgfpoint{\pgf@x}{\pgf@y}}]{\raisebox{-5.5ex}{Instruction}}
+    \pgf@anchor@instmem@center \pgftext[base,at={\pgfpoint{\pgf@x}{\pgf@y}}]{\raisebox{-7.7ex}{Memory}}
+
+    %Drawing A circuit
+    \pgf@anchor@instmem@A
+    \pgf@xa=\pgf@x \pgf@ya=\pgf@y \pgf@yb=\pgf@y
+    \pgf@anchor@instmem@west
+    \pgf@xb=\pgf@x 
+    %\pgfmathsetlength\pgf@x{2.5ex}
+    %\advance\pgf@xb by -\pgf@x
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    \pgf@anchor@instmem@A\pgftext[base,at={\pgfpoint{\pgf@x+\pinlength+1ex+\textoffset}{\pgf@y}}]{\raisebox{-0.5ex}{A}}
+
+    %Drawing RD circuit
+    \pgf@anchor@instmem@RD
+    \pgf@xa=\pgf@x \pgf@ya=\pgf@y
+    \pgf@yb=\pgf@y
+    \pgf@anchor@instmem@east
+    \pgf@xb=\pgf@x
+    %\pgfmathsetlength\pgf@x{2.5ex}
+    %\advance\pgf@xb by \pgf@x
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    \pgf@anchor@instmem@RD\pgftext[base,at={\pgfpoint{\pgf@x-\pinlength-2ex-\textoffset}{\pgf@y}}]{\raisebox{-0.5ex}{RD}}
+  }
+  
+}
+
+
+\pgfdeclareshape{regfile}{
+  % The 'minimum width' and 'minimum height' keys, not the content, determine
+  % the size
+  \savedanchor\northeast{%
+    \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+    \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+    \pgf@x=0.5\pgf@x
+    \pgf@y=0.25\pgf@y
+  }
+  % This is redundant, but makes some things easier:
+  \savedanchor\southwest{%
+    \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+    \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+    \pgf@x=-0.5\pgf@x
+    \pgf@y=-0.65\pgf@y
+  }
+  % Inherit from rectangle
+  \inheritanchorborder[from=rectangle]
+
+  % Define same anchor a normal rectangle has
+  \anchor{center}{\pgfpointorigin}
+  \anchor{north}{\northeast \pgf@x=0pt}
+  \anchor{east}{\northeast \pgf@y=0pt}
+  \anchor{south}{\southwest \pgf@x=0pt}
+  \anchor{west}{\southwest \pgf@y=0pt}
+  \anchor{north east}{\northeast}
+  \anchor{north west}{\northeast \pgf@x=-\pgf@x}
+  \anchor{south west}{\southwest}
+  \anchor{south east}{\southwest \pgf@x=-\pgf@x}
+  \anchor{text}{
+    \pgfpointorigin
+    \advance\pgf@x by -.5\wd\pgfnodeparttextbox%
+    \advance\pgf@y by -.5\ht\pgfnodeparttextbox%
+    \advance\pgf@y by +.5\dp\pgfnodeparttextbox%
+  }
+
+  % Define anchors for signal ports
+
+  \anchor{CLK}{
+    \pgf@process{\northeast}%
+    \pgf@x=-.65\pgf@x%
+    \pgf@y=1\pgf@y%
+  }
+  
+  \anchor{WETHREE}{
+    \pgf@process{\northeast}%
+    \pgf@x=0\pgf@x%
+    \pgf@ya=1\pgf@y%
+    \advance\pgf@ya by \pinlength
+    \pgf@y = \pgf@ya
+  }
+  \anchor{WE3}{\pgf@anchor@regfile@WETHREE}
+
+  \anchor{AONE}{
+    \pgf@process{\southwest}%
+    \pgf@xa=1\pgf@x%
+    \advance\pgf@xa by -\pinlength
+    \pgf@process{\northeast}%
+    \pgf@x=\pgf@xa
+    %
+    \pgf@y=.4\pgf@y%
+  }
+  \anchor{A1}{\pgf@anchor@regfile@AONE}
+  
+  \anchor{ATWO}{
+    \pgf@process{\southwest}%
+    \pgf@xa=1\pgf@x%
+    \advance\pgf@xa by -\pinlength
+    \pgf@process{\northeast}%
+    \pgf@x=\pgf@xa
+    %
+    \pgf@y=-0.3\pgf@y%
+  }
+  \anchor{A2}{\pgf@anchor@regfile@ATWO}
+  
+  \anchor{ATHREE}{
+    \pgf@process{\southwest}%
+    \pgf@xa=1\pgf@x%
+    \advance\pgf@xa by -\pinlength
+    \pgf@process{\northeast}%
+    \pgf@x=\pgf@xa
+    %
+    \pgf@y=-1.0\pgf@y%
+  }
+  \anchor{A3}{\pgf@anchor@regfile@ATHREE}
+  
+  \anchor{WDTHREE}{
+    \pgf@process{\southwest}%
+    \pgf@xa=1\pgf@x%
+    \advance\pgf@xa by -\pinlength
+    \pgf@process{\northeast}%
+    \pgf@x=\pgf@xa
+    %
+    \pgf@y=-1.7\pgf@y%
+  }
+  \anchor{WD3}{\pgf@anchor@regfile@WDTHREE}
+  
+  \anchor{PC}{
+    \pgf@process{\southwest}%
+    \pgf@xa=1\pgf@x%
+    \advance\pgf@xa by -\pinlength
+    \pgf@process{\northeast}%
+    \pgf@x=\pgf@xa
+    %
+    \pgf@y=-2.3\pgf@y%
+  }
+  \anchor{R15}{\pgf@anchor@regfile@PC}
+  
+  \anchor{RDONE}{
+    \pgf@process{\northeast}%
+    \pgf@xa=1\pgf@x%
+    \advance\pgf@xa by \pinlength
+    \pgf@x=\pgf@xa
+    %
+    \pgf@y=.4\pgf@y%
+  }
+  \anchor{RD1}{\pgf@anchor@regfile@RDONE}
+  
+  \anchor{RDTWO}{
+    \pgf@process{\northeast}%
+    \pgf@xa=1\pgf@x%
+    \advance\pgf@xa by \pinlength
+    \pgf@x=\pgf@xa
+    %
+    \pgf@y=-.3\pgf@y%
+  }
+  \anchor{RD2}{\pgf@anchor@regfile@RDTWO}
+
+  % Draw the rectangle box and the port labels
+  \backgroundpath{
+    % Rectangle box
+    \pgfpathrectanglecorners{\southwest}{\northeast}
+
+
+% Drawing Triangle for clock input
+    % upper left x
+
+    \pgf@anchor@regfile@CLK \pgf@xa=\pgf@x \pgf@xb=\pgf@x \pgf@ya=\pgf@y \pgf@yb=\pgf@y 
+    \pgf@xc=\pgf@x \pgf@yc=\pgf@y
+    \pgfmathsetlength\pgf@x{1.3ex}
+    \advance\pgf@xa by 2mm
+    \advance\pgf@xb by -2mm
+    \advance\pgf@yc by -\pgf@x
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    \pgfpathlineto{\pgfpoint{\pgf@xc}{\pgf@yc}}
+    \pgfclosepath
+
+    \tikzset{flip flop/port labels} % Use font from this style
+    \tikz@textfont
+    
+    %Drawing MID label
+    \pgf@anchor@regfile@center \pgftext[base,at={\pgfpoint{\pgf@x+3ex}{\pgf@y}}]{\raisebox{-8.5ex}{Register}}
+    \pgf@anchor@regfile@center \pgftext[base,at={\pgfpoint{\pgf@x+3ex}{\pgf@y}}]{\raisebox{-10.9ex}{File}}
+
+
+    %Drawing CLK circuit
+    \pgf@anchor@regfile@CLK
+    \pgf@xa=\pgf@x \pgf@ya=\pgf@y
+    \pgf@xb=\pgf@x \pgf@yb=\pgf@y
+    \pgfmathsetlength\pgf@x{1.8ex}
+    \advance\pgf@yb by \pgf@x
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    %Draw clock label
+    \pgf@anchor@regfile@CLK\pgftext[base,at={\pgfpoint{\pgf@x}{\pgf@y}}]{\raisebox{2.5ex}{CLK}}
+
+
+    %Drawing A1 circuit
+    \pgf@anchor@regfile@AONE
+    \pgf@xa=\pgf@x \pgf@ya=\pgf@y \pgf@yb=\pgf@y
+    \pgf@anchor@regfile@west
+    \pgf@xb=\pgf@x 
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    \pgf@anchor@regfile@AONE\pgftext[base,at={\pgfpoint{\pgf@x+\pinlength+1.6ex+\textoffset}{\pgf@y}}]{\raisebox{-0.5ex}{A1}}
+    
+    %Drawing A2 circuit
+    \pgf@anchor@regfile@ATWO
+    \pgf@xa=\pgf@x \pgf@ya=\pgf@y \pgf@yb=\pgf@y
+    \pgf@anchor@regfile@west
+    \pgf@xb=\pgf@x 
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    \pgf@anchor@regfile@ATWO\pgftext[base,at={\pgfpoint{\pgf@x+\pinlength+1.6ex+\textoffset}{\pgf@y}}]{\raisebox{-0.5ex}{A2}}
+    
+    %Drawing A3 circuit
+    \pgf@anchor@regfile@ATHREE
+    \pgf@xa=\pgf@x \pgf@ya=\pgf@y \pgf@yb=\pgf@y
+    \pgf@anchor@regfile@west
+    \pgf@xb=\pgf@x 
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    \pgf@anchor@regfile@ATHREE\pgftext[base,at={\pgfpoint{\pgf@x+\pinlength+1.6ex+\textoffset}{\pgf@y}}]{\raisebox{-0.5ex}{A3}}
+    
+    %Drawing WD3 circuit
+    \pgf@anchor@regfile@WDTHREE
+    \pgf@xa=\pgf@x \pgf@ya=\pgf@y \pgf@yb=\pgf@y
+    \pgf@anchor@regfile@west
+    \pgf@xb=\pgf@x 
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    \pgf@anchor@regfile@WDTHREE\pgftext[base,at={\pgfpoint{\pgf@x+\pinlength+2.9ex+\textoffset}{\pgf@y}}]{\raisebox{-0.5ex}{WD3}}
+    
+    
+    %Drawing R15 circuit
+    \pgf@anchor@regfile@PC
+    \pgf@xa=\pgf@x \pgf@ya=\pgf@y \pgf@yb=\pgf@y
+    \pgf@anchor@regfile@west
+    \pgf@xb=\pgf@x 
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    \pgf@anchor@regfile@PC\pgftext[base,at={\pgfpoint{\pgf@x+\pinlength+2.2ex+\textoffset}{\pgf@y}}]{\raisebox{-0.5ex}{R15}}
+
+    %Drawing RD1 circuit
+    \pgf@anchor@regfile@RDONE
+    \pgf@xa=\pgf@x \pgf@ya=\pgf@y
+    \pgf@yb=\pgf@y
+    \pgf@anchor@regfile@east
+    \pgf@xb=\pgf@x
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    \pgf@anchor@regfile@RDONE\pgftext[base,at={\pgfpoint{\pgf@x-\pinlength-2.4ex-\textoffset}{\pgf@y}}]{\raisebox{-0.5ex}{RD1}}
+    
+    %Drawing RD2 circuit
+    \pgf@anchor@regfile@RDTWO
+    \pgf@xa=\pgf@x \pgf@ya=\pgf@y
+    \pgf@yb=\pgf@y
+    \pgf@anchor@regfile@east
+    \pgf@xb=\pgf@x
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    \pgf@anchor@regfile@RDTWO\pgftext[base,at={\pgfpoint{\pgf@x-\pinlength-2.4ex-\textoffset}{\pgf@y}}]{\raisebox{-0.5ex}{RD2}}
+    
+    %Drawing WE3 circuit
+    \pgf@anchor@regfile@WETHREE
+    \pgf@xa=\pgf@x \pgf@ya=\pgf@y
+    \pgf@xb=\pgf@x 
+    \pgf@anchor@regfile@north
+    \pgf@yb=\pgf@y
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    %Draw clock label
+    \pgf@anchor@regfile@WETHREE\pgftext[base,at={\pgfpoint{\pgf@x}{\pgf@y-\pinlength-\textoffset}}]{\raisebox{-2ex}{WE3}}
+    
+  }
+}
+
+\pgfdeclareshape{datamem}{
+  % The 'minimum width' and 'minimum height' keys, not the content, determine
+  % the size
+  \savedanchor\northeast{%
+    \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+    \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+    \pgf@x=0.35\pgf@x
+    \pgf@y=0.25\pgf@y
+  }
+  % This is redundant, but makes some things easier:
+  \savedanchor\southwest{%
+    \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+    \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+    \pgf@x=-0.35\pgf@x
+    \pgf@y=-0.50\pgf@y
+  }
+  % Inherit from rectangle
+  \inheritanchorborder[from=rectangle]
+
+  % Define same anchor a normal rectangle has
+  \anchor{center}{\pgfpointorigin}
+  \anchor{north}{\northeast \pgf@x=0pt}
+  \anchor{east}{\northeast \pgf@y=0pt}
+  \anchor{south}{\southwest \pgf@x=0pt}
+  \anchor{west}{\southwest \pgf@y=0pt}
+  \anchor{north east}{\northeast}
+  \anchor{north west}{\northeast \pgf@x=-\pgf@x}
+  \anchor{south west}{\southwest}
+  \anchor{south east}{\southwest \pgf@x=-\pgf@x}
+  \anchor{text}{
+    \pgfpointorigin
+    \advance\pgf@x by -.5\wd\pgfnodeparttextbox%
+    \advance\pgf@y by -.5\ht\pgfnodeparttextbox%
+    \advance\pgf@y by +.5\dp\pgfnodeparttextbox%
+  }
+
+  % Define anchors for signal ports
+
+  \anchor{CLK}{
+    \pgf@process{\northeast}%
+    \pgf@x=-.5\pgf@x%
+    \pgf@y=1\pgf@y%
+  }
+  
+  \anchor{WE}{
+    \pgf@process{\northeast}%
+    \pgf@x=0.5\pgf@x%
+    \pgf@ya=1\pgf@y%
+    \advance\pgf@ya by \pinlength
+    \pgf@y = \pgf@ya
+  }
+
+  \anchor{A}{
+    \pgf@process{\southwest}%
+    \pgf@xa=1\pgf@x%
+    \advance\pgf@xa by -\pinlength
+    \pgf@process{\northeast}%
+    \pgf@x=\pgf@xa
+    %
+    \pgf@y=0\pgf@y%
+  }
+  
+  \anchor{WD}{
+    \pgf@process{\southwest}%
+    \pgf@xa=1\pgf@x%
+    \advance\pgf@xa by -\pinlength
+    \pgf@process{\northeast}%
+    \pgf@x=\pgf@xa
+    %
+    \pgf@y=-1.5\pgf@y%
+  }
+
+  \anchor{RD}{
+    \pgf@process{\northeast}%
+    \pgf@xa=1\pgf@x%
+    \advance\pgf@xa by \pinlength
+    \pgf@x=\pgf@xa
+    %
+    \pgf@y=0\pgf@y%
+  }
+
+  % Draw the rectangle box and the port labels
+  \backgroundpath{
+    % Rectangle box
+    \pgfpathrectanglecorners{\southwest}{\northeast}
+
+
+% Drawing Triangle for clock input
+    % upper left x
+
+    \pgf@anchor@datamem@CLK \pgf@xa=\pgf@x \pgf@xb=\pgf@x \pgf@ya=\pgf@y \pgf@yb=\pgf@y 
+    \pgf@xc=\pgf@x \pgf@yc=\pgf@y
+    \pgfmathsetlength\pgf@x{1.3ex}
+    \advance\pgf@xa by 2mm
+    \advance\pgf@xb by -2mm
+    \advance\pgf@yc by -\pgf@x
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    \pgfpathlineto{\pgfpoint{\pgf@xc}{\pgf@yc}}
+    \pgfclosepath
+
+    \tikzset{flip flop/port labels} % Use font from this style
+    \tikz@textfont
+    
+    %Drawing MID label
+    \pgf@anchor@datamem@center \pgftext[base,at={\pgfpoint{\pgf@x}{\pgf@y}}]{\raisebox{-3.5ex}{Data}}
+    \pgf@anchor@datamem@center \pgftext[base,at={\pgfpoint{\pgf@x}{\pgf@y}}]{\raisebox{-5.9ex}{Memory}}
+
+
+    %Drawing CLK circuit
+    \pgf@anchor@datamem@CLK
+    \pgf@xa=\pgf@x \pgf@ya=\pgf@y
+    \pgf@xb=\pgf@x \pgf@yb=\pgf@y
+    \pgfmathsetlength\pgf@x{1.8ex}
+    \advance\pgf@yb by \pgf@x
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    %Draw clock label
+    \pgf@anchor@datamem@CLK\pgftext[base,at={\pgfpoint{\pgf@x}{\pgf@y}}]{\raisebox{2.5ex}{CLK}}
+
+
+    %Drawing A circuit
+    \pgf@anchor@datamem@A
+    \pgf@xa=\pgf@x \pgf@ya=\pgf@y \pgf@yb=\pgf@y
+    \pgf@anchor@datamem@west
+    \pgf@xb=\pgf@x 
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    \pgf@anchor@datamem@A\pgftext[base,at={\pgfpoint{\pgf@x+\pinlength+1ex+\textoffset}{\pgf@y}}]{\raisebox{-0.5ex}{A}}
+
+    %Drawing WD circuit
+    \pgf@anchor@datamem@WD
+    \pgf@xa=\pgf@x \pgf@ya=\pgf@y \pgf@yb=\pgf@y
+    \pgf@anchor@datamem@west
+    \pgf@xb=\pgf@x 
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    \pgf@anchor@datamem@WD\pgftext[base,at={\pgfpoint{\pgf@x+\pinlength+2.2ex+\textoffset}{\pgf@y}}]{\raisebox{-0.5ex}{WD}}
+    
+    
+    %Drawing RD circuit
+    \pgf@anchor@datamem@RD
+    \pgf@xa=\pgf@x \pgf@ya=\pgf@y
+    \pgf@yb=\pgf@y
+    \pgf@anchor@datamem@east
+    \pgf@xb=\pgf@x
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    \pgf@anchor@datamem@RD\pgftext[base,at={\pgfpoint{\pgf@x-\pinlength-1.8ex-\textoffset}{\pgf@y}}]{\raisebox{-0.5ex}{RD}}
+    
+
+    %Drawing WE circuit
+    \pgf@anchor@datamem@WE
+    \pgf@xa=\pgf@x \pgf@ya=\pgf@y
+    \pgf@xb=\pgf@x
+    \pgf@anchor@datamem@north
+    \pgf@yb=\pgf@y
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    %Draw clock label
+    \pgf@anchor@datamem@WE\pgftext[base,at={\pgfpoint{\pgf@x}{\pgf@y-\pinlength-\textoffset}}]{\raisebox{-1.9ex}{WE}}
+    
+  }
+  
+}
+
+\pgfdeclareshape{extend}{
+  % The 'minimum width' and 'minimum height' keys, not the content, determine
+  % the size
+  \savedanchor\northeast{%
+    \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+    \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+    \pgf@x=0.5\pgf@x
+    \pgf@y=0.18\pgf@y
+  }
+  % This is redundant, but makes some things easier:
+  \savedanchor\southwest{%
+    \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+    \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+    \pgf@x=-0.5\pgf@x
+    \pgf@y=-0.05\pgf@y
+  }
+  % Inherit from rectangle
+  \inheritanchorborder[from=rectangle]
+
+  % Define same anchor a normal rectangle has
+  \anchor{center}{\pgfpointorigin}
+  \anchor{north}{\northeast \pgf@x=0pt}
+  \anchor{east}{\northeast \pgf@y=0pt}
+  \anchor{south}{\southwest \pgf@x=0pt}
+  \anchor{west}{\southwest \pgf@y=0pt}
+  \anchor{north east}{\northeast}
+  \anchor{north west}{\northeast \pgf@x=-\pgf@x}
+  \anchor{south west}{\southwest}
+  \anchor{south east}{\southwest \pgf@x=-\pgf@x}
+  \anchor{text}{
+    \pgfpointorigin
+    \advance\pgf@x by -.5\wd\pgfnodeparttextbox%
+    \advance\pgf@y by -.5\ht\pgfnodeparttextbox%
+    \advance\pgf@y by +.5\dp\pgfnodeparttextbox%
+  }
+
+
+  % Define anchors for signal ports
+  \anchor{IN}{
+    \pgf@process{\southwest}%
+    \pgf@xa=1\pgf@x%
+    \advance\pgf@xa by -\pinlength
+    \pgf@process{\northeast}%
+    \pgf@x=\pgf@xa
+    %
+    \pgf@y=0\pgf@y%
+  }
+  
+  \anchor{OUT}{
+    \pgf@process{\northeast}%
+    \pgf@xa=1\pgf@x%
+    \advance\pgf@xa by \pinlength
+    \pgf@x=\pgf@xa
+    %
+    \pgf@y=0\pgf@y%
+  }
+  
+    \anchor{S}{
+    \pgf@process{\northeast}%
+    \pgf@xa=\pgf@x \pgf@ya=\pgf@y
+    \pgf@process{\southwest}%
+    \pgf@xb=\pgf@x \pgf@yb=\pgf@y
+    \pgfmathsetlength{\pgf@x}{(\pgf@xa+\pgf@xb)/2}
+    \pgfmathsetlength{\pgf@y}{(\pgf@ya+\pgf@yb+2.35ex)/2}
+    %
+  }
+
+  % Draw the rectangle box and the port labels
+  \backgroundpath{
+    % Rectangle box
+    %\pgfpathrectanglecorners{\southwest}{\northeast}
+
+    
+    \southwest
+    \pgf@xa = \pgf@x \pgf@ya = \pgf@y 
+    \northeast
+    \pgf@yb = \pgf@y
+    \pgf@xb = \pgf@x
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xa}{\pgf@yb-2ex}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@ya}}
+    \pgfclosepath
+
+    \tikzset{flip flop/port labels} % Use font from this style
+    \tikz@textfont
+ 
+
+    %Drawing MID label
+    \pgf@anchor@datamem@center \pgftext[base,at={\pgfpoint{\pgf@x}{\pgf@y}}]{\raisebox{-0.5ex}{Extend}}
+
+    %Drawing PC circuit
+    \pgf@anchor@extend@IN
+    \pgf@ya=\pgf@y \pgf@yb=\pgf@y \pgf@xa=\pgf@x
+    \pgf@anchor@extend@west
+    \pgf@xb=\pgf@x 
+    %\pgfmathsetlength\pgf@x{2.7ex}
+    %\advance\pgf@xb by \pgf@x
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+
+    %Drawing PC' circuit
+    \pgf@anchor@extend@OUT
+    \pgf@ya=\pgf@y \pgf@yb=\pgf@y\pgf@xa=\pgf@x 
+    \pgf@anchor@extend@east
+    \pgf@xb=\pgf@x 
+    %\pgfmathsetlength\pgf@x{2.5ex}
+    %\advance\pgf@xb by \pgf@x
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+  }
+  
+}
+
+
+\tikzset{flip flop/port labels/.initial={\tiny}}
+%
+% number of ports
+\tikzset{ports/.initial=2}
+\tikzset{delta/.initial=4}
+\tikzset{ctrls/.initial=0}
+
+\tikzset{reverse/.initial=0}
+\newcount\tmp@b
+
+\pgfdeclareshape{calcblock}{
+
+    % you have to save the relevant parameters as \savedmacro
+    \savedmacro\numports{
+        \edef\numports{\pgfkeysvalueof{/tikz/ports}}%
+    }
+    
+    \savedmacro\ctrls{
+        \edef\ctrls{\pgfkeysvalueof{/tikz/ctrls}}%
+    }
+    
+    \savedmacro\ifreverse{
+        \edef\ifreverse{\pgfkeysvalueof{/tikz/reverse}}%
+    }
+
+    % and \saveddimen
+    \saveddimen\pinsdelta{
+        % you can't use savedmacros nor savedanchors here (bummer!)
+        \edef\numports{\pgfkeysvalueof{/tikz/ports}}%
+        \edef\delta{\pgfkeysvalueof{/tikz/delta}}%
+        \pgfmathsetlength\pgf@x{\delta}%
+    }
+
+    % The 'minimum width' and 'minimum height' keys, not the content, determine
+    % the size
+    \savedanchor\northeast{%
+        \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+        \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+        \edef\delta{\pgfkeysvalueof{/tikz/delta}}
+        \pgfmathsetlength\pgf@x{0.09\pgf@x*(\numports)*\delta/2}
+        \pgf@y=0.08\pgf@y
+    }
+    % This is redundant, but makes some things easier:
+    \savedanchor\southwest{%
+        \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+        \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+        \edef\delta{\pgfkeysvalueof{/tikz/delta}}
+        \pgfmathsetlength\pgf@x{-0.09\pgf@x*(\numports)*\delta/2}
+        \pgf@y=-0.15\pgf@y
+    }
+    
+    \savedanchor\south{%
+        \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+        \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+        \pgfmathsetlength\pgf@x{0}
+        \pgf@y=-0.15\pgf@y
+    }
+
+    % create input anchors
+    % this touch internal things, so beware...
+    % anchors are named pgf@anchor@<name-of-the-shape>@<name of the anchors>
+    \pgfutil@g@addto@macro\pgf@sh@s@calcblock{%
+        \tmp@b=\numports\relax
+        \pgfmathloop%
+        \ifnum\pgfmathcounter>\tmp@b%
+        \else%
+        % assign the anchor "in \pgfmathcounter" to the macro \calcblock@port with the number as argument
+        \expandafter\xdef\csname pgf@anchor@calcblock@IN\pgfmathcounter\endcsname{%
+            \noexpand\calcblock@port{\pgfmathcounter}% defined below
+        }%
+        % \typeout{YAY\space\pgfmathcounter}
+        \repeatpgfmathloop%
+    }
+
+    % Inherit from rectangle
+    \inheritanchorborder[from=rectangle]
+
+    % Define same anchor a normal rectangle has
+   % \anchor{center}{
+   %     \south
+   %     \pgf@y=1.7\pgf@y
+   %     \pgf@xa=\pgf@x
+   %     \pgfmathsetlength{\pgf@x}{\pgf@xa-(2 -\numports/2)*\pinsdelta*6 +\pinsdelta*6/2}%
+   % }
+    \anchor{center}{\pgfpointorigin}
+    \anchor{north}{\northeast \pgf@x=0pt}
+    \anchor{east}{\northeast \pgf@y=0pt}
+    \anchor{south}{\southwest \pgf@x=0pt}
+    \anchor{west}{\southwest \pgf@y=0pt}
+    \anchor{north east}{\northeast}
+    \anchor{north west}{\northeast \pgf@x=-\pgf@x}
+    \anchor{south west}{\southwest}
+    \anchor{south east}{\southwest \pgf@x=-\pgf@x}
+    \anchor{text}{
+        \pgfpointorigin
+        \advance\pgf@x by -.5\wd\pgfnodeparttextbox%
+        \advance\pgf@y by -.5\ht\pgfnodeparttextbox%
+        \advance\pgf@y by +.5\dp\pgfnodeparttextbox%
+    }
+    
+    \anchor{OUT}{
+        \pgf@process{\northeast}%
+        \pgf@x=0\pgf@x%
+        \pgf@ya=1\pgf@y%
+        \advance\pgf@ya by \pinlength
+        \pgf@y = \pgf@ya
+    }
+    
+    \anchor{F}{
+        \pgf@process{\northeast}%
+        \pgf@x=-0.6\pgf@x%
+        \pgf@ya=1\pgf@y%
+        \pgf@y = \pgf@ya
+    }
+    
+    \anchor{S}{
+        \pgf@process{\northeast}%
+        \pgf@ya=\pgf@y%
+        \pgf@process{\southwest}%
+        \pgf@yb=\pgf@y%
+        \pgf@x=\pgf@x
+        \ifthenelse{\ctrls=1}{
+            \advance\pgf@x by -\pinlength%
+        }{}
+        \advance\pgf@x by 1mm%
+        \pgfmathsetlength{\pgf@y}{(\pgf@ya + \pgf@yb)/2}%
+        %\advance\pgf@y by -0.8mm%
+    }
+
+
+
+    % Draw the rectangle box and the port labels
+    \backgroundpath{
+        % Rectangle box
+        %\pgfpathrectanglecorners{\southwest}{\northeast}
+
+        \tikzset{flip flop/port labels} % Use font from this style
+        \tikz@textfont
+     
+     
+        %Drawing all ports for the calcblock
+        \foreach \p in {1,...,\numports} 
+        \pgf@anchor@calcblock@south
+        \pgf@xa=\pgf@x
+        \pgfmathsetlength{\pgf@x}{\pgf@xa-(\p -\numports/2)*\pinsdelta*6 +\pinsdelta*6/2}%
+        \pgf@ya=\pgf@y \pgf@yb=\pgf@y \pgf@xa=\pgf@x \pgf@xb=\pgf@x
+        \advance\pgf@yb by -3mm
+        \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+        \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}};
+        
+        
+        %Drawing triangle on bottom
+        \south
+        \pgf@xa=\pgf@x \pgf@xb=\pgf@x \pgf@xc=\pgf@x \pgf@ya=\pgf@y \pgf@yb=\pgf@y 
+        \advance\pgf@xa by -1.2mm*\pinsdelta
+        \advance\pgf@xc by 1.2mm*\pinsdelta
+        \advance\pgf@yb by 2mm
+        \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+        \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+        \pgfpathlineto{\pgfpoint{\pgf@xc}{\pgf@ya}}
+        %drawing right side of calcblock
+        \northeast
+        \pgf@xa = \pgf@x \pgf@yb = \pgf@y
+        \pgfpathlineto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+        \advance\pgf@xa by -2mm
+        \pgfpathlineto{\pgfpoint{\pgf@xa}{\pgf@yb}}
+        %Drawing top of calcblock
+        \southwest
+        \pgf@xa = \pgf@x
+        \advance\pgf@xa by 2mm
+        \pgfpathlineto{\pgfpoint{\pgf@xa}{\pgf@yb}}
+        %Draw left side of calcblock
+        \southwest
+        \pgf@xa = \pgf@x
+        \pgfpathlineto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+        %draw left bottom side
+        \south
+        \pgf@xa=\pgf@x
+        \advance\pgf@xa by -1.2mm\pinsdelta
+        \pgfpathlineto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+      
+      
+      %% Drawing OUT circuit
+      \pgf@anchor@calcblock@OUT
+      \pgf@xa = \pgf@x \pgf@ya = \pgf@y
+      \pgf@anchor@calcblock@north
+      \pgf@yb=\pgf@y
+      \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+      \pgfpathlineto{\pgfpoint{\pgf@xa}{\pgf@yb}}
+      
+      \ifthenelse{\ctrls=1}{
+      % Drawing S circuit
+          \pgf@anchor@calcblock@S
+          \pgf@xa = \pgf@x \pgf@xb = \pgf@x \pgf@ya=\pgf@y
+          \advance\pgf@xb by \pinlength
+          \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+          \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@ya}}
+        }{}
+    }
+}
+%
+\def\calcblock@port#1{%
+    % this macro has the function to return the position of the anchor
+    % it must use only \savedanchors and \savedmacros
+    % the parameter is the number of the anchor (see above)
+    \south
+    \pgf@y=1.7\pgf@y
+    \pgf@xa=\pgf@x
+    \ifthenelse{\ifreverse=0}{
+        \pgfmathsetlength{\pgf@x}{\pgf@xa+(#1 -\numports/2)*\pinsdelta*6 -\pinsdelta*6/2}
+    }{
+        \pgfmathsetlength{\pgf@x}{\pgf@xa-(#1 -\numports/2)*\pinsdelta*6 +\pinsdelta*6/2}%
+    }
+    
+}
+
+%
+% we need a counter
+\newcount\tmp@a
+\tikzset{nmux/.style={mux,rotate=-90,scale=0.7,delta=0.7mm}}
+\pgfdeclareshape{mux}{
+    % you have to save the relevant parameters as \savedmacro
+    \savedmacro\numports{
+        \edef\numports{\pgfkeysvalueof{/tikz/ports}}%
+    }
+    
+    \savedmacro\ctrls{
+        \edef\ctrls{\pgfkeysvalueof{/tikz/ctrls}}%
+    }
+
+    \savedmacro\ifreverse{
+        \edef\ifreverse{\pgfkeysvalueof{/tikz/reverse}}%
+    }
+
+    % and \saveddimen
+    \saveddimen\pinsdelta{
+        % you can't use savedmacros nor savedanchors here (bummer!)
+        \edef\numports{\pgfkeysvalueof{/tikz/ports}}%
+        \edef\delta{\pgfkeysvalueof{/tikz/delta}}%
+        \pgfmathsetlength\pgf@x{\delta}%
+    }
+
+    % The 'minimum width' and 'minimum height' keys, not the content, determine
+    % the size
+    \savedanchor\northeast{%
+        \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+        \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+        \edef\delta{\pgfkeysvalueof{/tikz/delta}}
+        \pgfmathsetlength\pgf@x{0.11\pgf@x*(\numports)*\delta/2}
+        \pgf@y=0\pgf@y
+    }
+    % This is redundant, but makes some things easier:
+    \savedanchor\southwest{%
+        \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+        \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+        \edef\delta{\pgfkeysvalueof{/tikz/delta}}
+        \pgfmathsetlength\pgf@x{-0.11\pgf@x*(\numports)*\delta/2}
+        \pgf@y=-0.15\pgf@y
+    }
+    
+    \savedanchor\south{%
+        \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+        \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+        \pgfmathsetlength\pgf@x{0}
+        \pgf@y=-0.15\pgf@y
+    }
+    % Inherit from rectangle
+    \inheritanchorborder[from=rectangle]
+
+    % Define same anchor a normal rectangle has
+    \anchor{center}{\pgfpointorigin}
+    \anchor{north}{\northeast \pgf@x=0pt}
+    \anchor{east}{\northeast \pgf@y=0pt}
+    \anchor{south}{\southwest \pgf@x=0pt}
+    \anchor{west}{\southwest \pgf@y=0pt}
+    \anchor{north east}{\northeast}
+    \anchor{north west}{\northeast \pgf@x=-\pgf@x}
+    \anchor{south west}{\southwest}
+    \anchor{south east}{\southwest \pgf@x=-\pgf@x}
+    \anchor{text}{
+        \pgfpointorigin
+        \advance\pgf@x by -.5\wd\pgfnodeparttextbox%
+        \advance\pgf@y by -.5\ht\pgfnodeparttextbox%
+        \advance\pgf@y by +.5\dp\pgfnodeparttextbox%
+    }
+    
+    \anchor{OUT}{
+        \pgf@process{\northeast}%
+        \pgf@x=0\pgf@x%
+        \pgf@ya=1\pgf@y%
+        \advance\pgf@ya by \pinlength
+        \pgf@y = \pgf@ya
+    }
+    
+    
+    \anchor{S}{
+        \pgf@process{\northeast}%
+        \pgf@ya=\pgf@y%
+        \pgf@process{\southwest}%
+        \pgf@yb=\pgf@y%
+        \pgf@x=\pgf@x
+        \ifthenelse{\ctrls=1}{
+            \advance\pgf@x by -\pinlength%
+        }{}
+        \advance\pgf@x by 0.4mm%
+        \pgfmathsetlength{\pgf@y}{(\pgf@ya + \pgf@yb)/2}%
+        %\advance\pgf@y by -0.8mm%
+    }
+ % create input anchors
+    % this touch internal things, so beware...
+    % anchors are named pgf@anchor@<name-of-the-shape>@<name of the anchors>
+    \pgfutil@g@addto@macro\pgf@sh@s@mux{%
+        \tmp@a=\numports\relax
+        \pgfmathloop%
+        \ifnum\pgfmathcounter>\tmp@a%
+        \else%
+        % assign the anchor "in \pgfmathcounter" to the macro \mux@port with the number as argument
+        \expandafter\xdef\csname pgf@anchor@mux@IN\pgfmathcounter\endcsname{%
+            \noexpand\mux@port{\pgfmathcounter}% defined below
+        }%
+        % \typeout{YAY\space\pgfmathcounter}
+        \repeatpgfmathloop%
+    }
+
+
+    % Draw the rectangle box and the port labels
+    \backgroundpath{
+        % Rectangle box
+        %\pgfpathrectanglecorners{\southwest}{\northeast}
+
+        \tikzset{flip flop/port labels} % Use font from this style
+        \tikz@textfont
+     
+     
+        %Drawing all ports for the mux
+        \foreach \p in {1,...,\numports} 
+        \pgf@anchor@mux@south
+        \pgf@xa=\pgf@x
+        \pgfmathsetlength{\pgf@x}{\pgf@xa-(\p -\numports/2)*\pinsdelta*6 +\pinsdelta*6/2}%
+        \pgf@ya=\pgf@y \pgf@yb=\pgf@y \pgf@xa=\pgf@x \pgf@xb=\pgf@x
+        \advance\pgf@yb by -\pinlength
+        \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+        \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+        % drawing numbers
+        \pgf@anchor@mux@south
+        \pgf@xa=\pgf@x
+        \ifthenelse{\ifreverse=0}{
+            \pgfmathsetlength{\pgf@x}{\pgf@xa+(\p -\numports/2)*\pinsdelta*6 -\pinsdelta*6/2}
+        }{
+            \pgfmathsetlength{\pgf@x}{\pgf@xa-(\p -\numports/2)*\pinsdelta*6 +\pinsdelta*6/2}%
+        }
+        \pgf@ya=\pgf@y \pgf@yb=\pgf@y \pgf@xa=\pgf@x \pgf@xb=\pgf@x
+        \advance\pgf@yb by -3mm
+        \def\eps{\pgfmathparse{round(log2(\p))}\pgfmathresult}
+        \def\binNum{\pgfmathparse{bin(\p-1)}\pgfmathresult}
+        \pgf@anchor@mux@south\pgftext[base,at={\pgfpoint{\pgf@xa}{\pgf@ya+1.2ex+\textoffset}},rotate=90]{\raisebox{-1ex}{\normalsize{\binNum}}}
+        ;
+        
+        
+        %Drawing triangle on bottom
+        \south
+        \pgf@xa=\pgf@x \pgf@xb=\pgf@x \pgf@xc=\pgf@x \pgf@ya=\pgf@y \pgf@yb=\pgf@y 
+        \advance\pgf@xa by -1.2mm*\pinsdelta
+        \advance\pgf@xc by 1.2mm*\pinsdelta
+        \advance\pgf@yb by 0mm
+        \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+        \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+        \pgfpathlineto{\pgfpoint{\pgf@xc}{\pgf@ya}}
+        %drawing right side of mux
+        \northeast
+        \pgf@xa = \pgf@x \pgf@yb = \pgf@y
+        \pgfpathlineto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+        \advance\pgf@xa by -1mm
+        \pgfpathlineto{\pgfpoint{\pgf@xa}{\pgf@yb}}
+        %Drawing top of mux
+        \southwest
+        \pgf@xa = \pgf@x
+        \advance\pgf@xa by 1mm
+        \pgfpathlineto{\pgfpoint{\pgf@xa}{\pgf@yb}}
+        %Draw left side of mux
+        \southwest
+        \pgf@xa = \pgf@x
+        \pgfpathlineto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+        %draw left bottom side
+        \south
+        \pgf@xa=\pgf@x
+        \advance\pgf@xa by -1.2mm\pinsdelta
+        \pgfpathlineto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+      
+      
+      %% Drawing OUT circuit
+      \pgf@anchor@mux@OUT
+      \pgf@xa = \pgf@x \pgf@ya = \pgf@y
+      \pgf@anchor@mux@north
+      \pgf@yb=\pgf@y
+      \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+      \pgfpathlineto{\pgfpoint{\pgf@xa}{\pgf@yb}}
+      
+      \ifthenelse{\ctrls=1}{
+      % Drawing OUT circuit
+          \pgf@anchor@mux@S
+          \pgf@xa = \pgf@x \pgf@xb = \pgf@x \pgf@ya=\pgf@y
+          \advance\pgf@xb by 2.5mm
+          \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+          \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@ya}}
+        }{}
+    }
+}
+%
+\def\mux@port#1{%
+    % this macro has the function to return the position of the anchor
+    % it must use only \savedanchors and \savedmacros
+    % the parameter is the number of the anchor (see above)
+    \south
+    \pgf@ya=\pgf@y
+    \advance\pgf@ya by -\pinlength
+    \pgf@y =\pgf@ya
+    \pgf@xa=\pgf@x
+    \ifthenelse{\ifreverse=0}{
+        \pgfmathsetlength{\pgf@x}{\pgf@xa+(#1 -\numports/2)*\pinsdelta*6 -\pinsdelta*6/2}
+    }{
+        \pgfmathsetlength{\pgf@x}{\pgf@xa-(#1 -\numports/2)*\pinsdelta*6 +\pinsdelta*6/2}%
+    }
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\tikzset{cunitone/.style={cunit,lpins=0,rpins=7,delta=4mm}}
+\tikzset{cunittwo/.style={cunit,lpins=4,rpins=7,delta=4mm}}
+\tikzset{rpins/.initial=4}
+\tikzset{lpins/.initial=4}
+\newcount\tmp@a
+\pgfdeclareshape{cunit}{
+   \savedmacro\rpins{
+        \edef\rpins{\pgfkeysvalueof{/tikz/rpins}}%
+    }
+    
+     \savedmacro\lpins{
+        \edef\lpins{\pgfkeysvalueof{/tikz/lpins}}%
+    }
+    
+    \savedmacro\ctrls{
+        \edef\ctrls{\pgfkeysvalueof{/tikz/ctrls}}%
+    }
+    
+    % and \saveddimen
+    \saveddimen\pinsdelta{
+        % you can't use savedmacros nor savedanchors here (bummer!)
+        \edef\delta{\pgfkeysvalueof{/tikz/delta}}%
+        \pgfmathsetlength\pgf@x{\delta}%
+    }
+    
+  % The 'minimum width' and 'minimum height' keys, not the content, determine
+  % the size
+  \savedanchor\northeast{%
+    \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+    \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+    \pgf@x=0.5\pgf@x
+    \pgf@y=0.6\pgf@y
+    \pgfmathsetlength\pgf@y{\pgf@y+\lpins*\pgfkeysvalueof{/tikz/delta}}
+  }
+  
+  \savedanchor\east{%
+    \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+    \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+    \pgf@x=0.5\pgf@x
+    \pgf@y=0\pgf@y
+  }
+  
+  \savedanchor\west{%
+    \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+    \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+    \pgf@x=-0.5\pgf@x
+    \pgf@y=0\pgf@y
+  }
+  
+  % This is redundant, but makes some things easier:
+  \savedanchor\southwest{%
+    \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+    \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+    \pgf@x=-0.5\pgf@x
+    \pgf@y=-0.5\pgf@y
+  }
+  % Inherit from rectangle
+  \inheritanchorborder[from=rectangle]
+
+  % Define same anchor a normal rectangle has
+  \anchor{center}{\pgfpointorigin}
+  \anchor{north}{\northeast \pgf@x=0pt}
+  \anchor{east}{\northeast \pgf@y=0pt}
+  \anchor{south}{\southwest \pgf@x=0pt}
+  \anchor{west}{\southwest \pgf@y=0pt}
+  \anchor{north east}{\northeast}
+  \anchor{north west}{\northeast \pgf@x=-\pgf@x}
+  \anchor{south west}{\southwest}
+  \anchor{south east}{\southwest \pgf@x=-\pgf@x}
+  \anchor{text}{
+    \pgfpointorigin
+    \advance\pgf@x by -.5\wd\pgfnodeparttextbox%
+    \advance\pgf@y by -.5\ht\pgfnodeparttextbox%
+    \advance\pgf@y by +.5\dp\pgfnodeparttextbox%
+  }
+
+  \anchor{CLK}{
+    \pgf@process{\northeast}%
+    \pgf@x=0\pgf@x%
+    \pgf@y = 1\pgf@y%
+  }
+  \anchor{COND}{
+    \pgf@process{\southwest}%
+    \pgf@xa=1\pgf@x%
+    \pgf@x = \pgf@xa
+    \pgf@y=0\pgf@y%
+    \advance\pgf@y by 8mm
+  }
+  
+  \anchor{OP}{
+    \pgf@process{\southwest}%
+    \pgf@xa=1\pgf@x%
+    \pgf@x = \pgf@xa
+    \pgf@y=0\pgf@y%
+    \advance\pgf@y by 4mm
+  }
+  
+  \anchor{FUNCT}{
+    \pgf@process{\southwest}%
+    \pgf@xa=1\pgf@x%
+    \pgf@x = \pgf@xa
+    \pgf@y=0\pgf@y%
+  }
+  
+  \anchor{RD}{
+    \pgf@process{\southwest}%
+    \pgf@xa=1\pgf@x%
+    \pgf@x = \pgf@xa
+    \pgf@y = 0\pgf@y%
+    \advance\pgf@y by -4mm
+  }
+  
+  \anchor{FLAGS}{
+    \pgf@process{\southwest}%
+    \pgf@xa=1\pgf@x%
+    \pgf@x = \pgf@xa
+    \pgf@y = 0\pgf@y%
+    \advance\pgf@y by -12mm
+  }
+  
+   % create input anchors
+    % this touch internal things, so beware...
+    % anchors are named pgf@anchor@<name-of-the-shape>@<name of the anchors>
+    \pgfutil@g@addto@macro\pgf@sh@s@cunit{%
+        \tmp@a=\rpins\relax
+        \pgfmathloop%
+        \ifnum\pgfmathcounter>\tmp@a%
+        \else%
+        % assign the anchor "in \pgfmathcounter" to the macro \mux@port with the number as argument
+        \expandafter\xdef\csname pgf@anchor@cunit@INR\pgfmathcounter\endcsname{%
+            \noexpand\cunitr@port{\pgfmathcounter}% defined below
+        }%
+        %\typeout{YAY\space\pgfmathcounter}
+        \repeatpgfmathloop%
+    }
+    
+    % create input anchors
+    % this touch internal things, so beware...
+    % anchors are named pgf@anchor@<name-of-the-shape>@<name of the anchors>
+    \pgfutil@g@addto@macro\pgf@sh@s@cunit{%
+        \tmp@a=\lpins\relax
+        \pgfmathloop%
+        \ifnum\pgfmathcounter>\tmp@a%
+        \else%
+        % assign the anchor "in \pgfmathcounter" to the macro \mux@port with the number as argument
+        \expandafter\xdef\csname pgf@anchor@cunit@INL\pgfmathcounter\endcsname{%
+            \noexpand\cunitl@port{\pgfmathcounter}% defined below
+        }%
+        %\typeout{YAY\space\pgfmathcounter}
+        \repeatpgfmathloop%
+    }
+  
+  % Draw the rectangle box and the port labels
+  \backgroundpath{
+    % Rectangle box
+    \pgfsetcornersarced{\pgfpoint{1mm}{1mm}}
+    \pgfpathrectanglecorners{\southwest}{\northeast}
+    \pgfsetcornersarced{\pgfpoint{0mm}{0mm}}
+% Drawing Triangle for clock input
+    % upper left x
+
+    \pgf@anchor@cunit@CLK \pgf@xa=\pgf@x \pgf@xb=\pgf@x \pgf@ya=\pgf@y \pgf@yb=\pgf@y 
+    \pgf@xc=\pgf@x \pgf@yc=\pgf@y
+    \pgfmathsetlength\pgf@x{1.3ex}
+    \advance\pgf@xa by 2mm
+    \advance\pgf@xb by -2mm
+    \advance\pgf@yc by -\pgf@x
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    \pgfpathlineto{\pgfpoint{\pgf@xc}{\pgf@yc}}
+    \pgfclosepath
+    
+    
+    \tikzset{flip flop/port labels} % Use font from this style
+    \tikz@textfont
+    
+        %Drawing MID label
+    \pgf@anchor@cunit@north
+    \pgf@xa = \pgf@x
+    \pgf@ya = \pgf@y
+    \advance\pgf@ya by -6mm
+    \pgftext[base,at={\pgfpoint{\pgf@xa}{\pgf@ya}}]{\raisebox{1ex}{Control}}
+    \pgftext[base,at={\pgfpoint{\pgf@xa}{\pgf@ya}}]{\raisebox{-1ex}{Unit}}
+    
+    %Drawing CLK circuit
+    \pgf@anchor@cunit@CLK
+    \pgf@xa=\pgf@x \pgf@ya=\pgf@y
+    \pgf@xb=\pgf@x \pgf@yb=\pgf@y
+    \pgfmathsetlength\pgf@x{1.8ex}
+    \advance\pgf@yb by \pgf@x
+    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+    %Draw clock label
+    \pgf@anchor@cunit@CLK\pgftext[base,at={\pgfpoint{\pgf@x}{\pgf@y}}]{\raisebox{2.5ex}{CLK}}
+
+    %Drawing Cond circuit
+    \pgf@anchor@cunit@COND\pgftext[base,at={\pgfpoint{\pgf@x+2.8ex+\textoffset}{\pgf@y}}]{\raisebox{-0.6ex}{Cond}}
+
+    %Drawing Op circuit
+    \pgf@anchor@cunit@OP\pgftext[base,at={\pgfpoint{\pgf@x+1.7ex+\textoffset}{\pgf@y}}]{\raisebox{-0.6ex}{Op}}
+
+    %Drawing Op circuit
+    \pgf@anchor@cunit@FUNCT\pgftext[base,at={\pgfpoint{\pgf@x+3.0ex+\textoffset}{\pgf@y}}]{\raisebox{-0.6ex}{Funct}}
+    
+    %Drawing Rd circuit
+    \pgf@anchor@cunit@RD\pgftext[base,at={\pgfpoint{\pgf@x+1.6ex+\textoffset}{\pgf@y}}]{\raisebox{-0.6ex}{Rd}}
+    
+    %Drawing Flags circuit
+    \pgf@anchor@cunit@FLAGS\pgftext[base,at={\pgfpoint{\pgf@x+2.8ex+\textoffset}{\pgf@y}}]{\raisebox{-0.6ex}{Flags}}
+  }
+  
+}
+
+\def\cunitr@port#1{%
+    % this macro has the function to return the position of the anchor
+    % it must use only \savedanchors and \savedmacros
+    % the parameter is the number of the anchor (see above)
+    \east
+    \pgf@ya=\pgf@y
+    \pgf@x=\pgf@x
+    \pgfmathsetlength{\pgf@y}{\pgf@ya-(#1 - \rpins)*\pinsdelta-\rpins*\pinsdelta/2+\pinsdelta}
+}
+
+\def\cunitl@port#1{%
+    % this macro has the function to return the position of the anchor
+    % it must use only \savedanchors and \savedmacros
+    % the parameter is the number of the anchor (see above)
+    \northeast
+    \pgf@ya=\pgf@y
+    \west
+    \pgf@x=\pgf@x
+    \pgfmathsetlength{\pgf@y}{\pgf@ya-(#1+1)*\pinsdelta}
+}
+
+\makeatother
+% Key to add font macros to the current font
+\tikzset{add font/.code={\expandafter\def\expandafter\tikz@textfont\expandafter{\tikz@textfont#1}}} 
+
+% Define default style for this node
+\tikzset{flip flop/port labels/.style={font=\sffamily\scriptsize}}
+\tikzset{label/.style={font=\sffamily\scriptsize}}
+\tikzset{calcblockmin/.style={calcblock,scale=0.5,delta=1.3mm}}
+\tikzset{every dff node/.style={draw,minimum width=2cm,minimum 
+height=2.828427125cm,very thick,inner sep=1mm,outer sep=0pt,cap=round,add 
+font=\sffamily}}
+
+\tikzset{every reg node/.style={draw,minimum width=2cm,minimum 
+height=2.828427125cm,thick,inner sep=1mm,outer sep=0pt,cap=round,add 
+font=\sffamily}}
+
+\tikzset{every instmem node/.style={draw,minimum width=2cm,minimum 
+height=2.828427125cm,thick,inner sep=1mm,outer sep=0pt,cap=round,add 
+font=\sffamily}}
+
+\tikzset{every regfile node/.style={draw,minimum width=2cm,minimum 
+height=2.828427125cm,thick,inner sep=1mm,outer sep=0pt,cap=round,add 
+font=\sffamily}}
+
+\tikzset{every datamem node/.style={draw,minimum width=2cm,minimum 
+height=2.828427125cm,thick,inner sep=1mm,outer sep=0pt,cap=round,add 
+font=\sffamily}}
+
+\tikzset{every extend node/.style={draw,minimum width=2cm,minimum 
+height=2.828427125cm,thick,inner sep=1mm,outer sep=0pt,cap=round,add 
+font=\sffamily}}
+
+\tikzset{every mux node/.style={draw,minimum width=2cm,minimum 
+height=2.828427125cm,thick,inner sep=1mm,outer sep=0pt,cap=round,add 
+font=\sffamily}}
+
+\tikzset{every calcblock node/.style={draw,minimum width=2cm,minimum 
+height=2.828427125cm,thick,inner sep=1mm,outer sep=0pt,cap=round,add 
+font=\sffamily}}
+
+\tikzset{every cunit node/.style={draw,minimum width=1cm,minimum 
+height=3cm,thick,inner sep=1mm,outer sep=0pt,cap=round,add 
+font=\sffamily}}
+
+\endinput
+%%
+%% End of file `mypackage.sty'.
