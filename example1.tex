@@ -1,17 +1,10 @@
 %\documentclass[landscape]{article}
 
 %\usepackage{microarch}
-\def\showcoord(#1)<#2:#3>{%
-    node[circle, red, draw, inner sep=1pt,pin={%
-        [red, inner sep=0.5pt, font=\small,
-        pin distance=#3cm, pin edge={red, }%
-    ]#2:#1}](#1){}}
-
 
 
 %\begin{document}
-\begin{tikzpicture}[thick,label,scale=0.6,every node/.style={scale=0.6}]
-]
+\begin{tikzpicture}
     \node (CUNIT) [cunitone,azure] at (5cm,5cm){};
     %PC Register
     \node (PC) [reg] at (0,0) {};

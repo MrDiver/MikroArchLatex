@@ -1,0 +1,8 @@
+\begin{marchpicture}
+	\node (IMEM) [instmem]  at (0,0){};
+	\node (RF) [regfile] at (5,0) {};
+	
+	%Connecting nodes
+	\draw  (IMEM.A)  |- (RF.R15)
+	(IMEM.RD) -| (RF.A2);
+\end{marchpicture}

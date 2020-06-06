@@ -1,3 +1,7 @@
 \begin{tikzpicture}
-    \node [instmem] at (0,0) {};
+   %Node
+    \node (MEM) [instmem] at (0,0) {};
+	%Anker
+    \path (MEM.A) \showcoord(A)<145:0.3>;
+    \path (MEM.RD) \showcoord(RD)<45:0.3>;
 \end{tikzpicture}

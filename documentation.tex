@@ -41,6 +41,7 @@
 
 \usepackage{microarch}
 \usepackage{listings}
+\usepackage{xcolor}
 %Formatierungen für Beispiele in diesem Dokument. Im Allgemeinen nicht notwendig!
 \let\file\texttt
 \let\code\texttt
@@ -48,6 +49,30 @@
 \let\cls\textsf
 
 \begin{document}
+
+\definecolor{darkgreen}{rgb}{0, 0.6, 0}
+\definecolor{gray}{rgb}{0.5, 0.5, 0.5}
+\definecolor{mauve}{rgb}{0.58, 0, 0.82}
+\lstset{
+	%frame=tb,
+	language=tex,
+	aboveskip=3mm,
+	belowskip=3mm,
+	showstringspaces=false,
+	columns=flexible,
+	basicstyle={\small\ttfamily},
+	numbers=left,
+	numberstyle=\tiny\color{gray},
+	morekeywords={*,include},
+	rulecolor=\color{red},
+	keywordstyle=\color{blue},
+	commentstyle=\color{darkgreen},
+	stringstyle=\color{mauve},
+	breaklines=true,
+	breakatwhitespace=true,
+	tabsize=4,
+	mathescape=true
+}
 
 
 \title{MikroArch Latex Documentation}
@@ -58,16 +83,43 @@
 
 \tableofcontents
 
+\section{Usage}
+
+\subsection{Installation and import}
+
+Für die Installation kopieren sie einfach die Datei \lstinline|microarch.sty| aus diesem Ordner in den Ordner ihrer Latex Datei oder geben diese in ihrem Latex Paketfpad an.
+\\\\
+Das importieren erfolgt dann über
+\begin{lstlisting}
+	\usepackage{microarch}
+\end{lstlisting}
+
+\subsection{Creating a Component and using Environments}
+
+Die Erstellung der Komponenten findet immer in einem \lstinline|marchpicture| oder \lstinline|marchpicturemini| Environment statt. In diesem werden die Nodes nach folgendem schema erstellt. Hierbei kann bei \lstinline|marchpicture| ein weiterer parameter angegeben werden um die Skalierung des Diagramms zu verändern.
+\begin{lstlisting}
+\begin{marchpicture}
+	\node (VERWENDUNGSNAME) [typ, option1=wert, ...] at (X,Y) {Text};
+\end{marchpicture}
+\end{lstlisting}
+
+\input{examples/environments}
+\lstinputlisting{examples/environments}
+
+\subsection{Connecting Nodes}
+
+Jede Node hat eine anzahl von vorgegebenen Ankern, welche zur positionierungg von anderen komponenten oder auch zum pfadzeichnen verwendet werden kann. Die namen der Anker für die Komponenten finden Sie in \ref{components}.
+
+\input{examples/connect1}
+\lstinputlisting{examples/connect1.tex}
 \section{Reference}
-\subsection{Components}
+\subsection{Components}\label{components}
+
 \subsubsection{Instruction Memory}
-
 \input{components/instructionmem}
-
 \lstinputlisting[]{components/instructionmem.tex}
 
 \include{example1}
 
 
-Für Erläuterungen zur Funktionsweise und den Möglichkeiten zur Änderung sei auf DEMO-TUDaPub.pdf verwiesen.
 \end{document}

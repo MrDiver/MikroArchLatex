@@ -14,6 +14,28 @@
 
 %% =========================================
 %%
+%%          Defining custom environment
+%%
+%% =========================================
+
+\newenvironment{marchpicturemini}[1]
+{
+	\begin{tikzpicture}[thick,scale=#1,every node/.style={scale=#1}]
+}
+{	
+	\end{tikzpicture}
+}
+
+\newenvironment{marchpicture}
+{
+	\begin{tikzpicture}[thick,label]
+}
+{	
+	\end{tikzpicture}
+}
+
+%% =========================================
+%%
 %%          Defining pgfkeys stuff
 %%
 %% =========================================
@@ -22,9 +44,17 @@
 \definecolor{electricblue}{rgb}{0.49, 0.98, 1.0}
 \definecolor{azure}{rgb}{0.1, 0.6, 1.0}
 
+\def\showcoord(#1)<#2:#3>{%
+    node[circle, red, draw, inner sep=1pt,pin={%
+        [red, inner sep=0.5pt, font=\small,
+        pin distance=#3cm, pin edge={red, }%
+    ]#2:#1}](#1){}}
+
+
 \makeatletter
 
 \tikzset{help lines/.style={very thin,color=blue!50}}
+\tikzset{ma/.style={thick}}
 
 \def\pinlength{3mm}
 \def\textoffset{0.2ex}
