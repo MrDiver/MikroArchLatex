@@ -3,6 +3,6 @@
 	\node (RF) [regfile] at (5,0) {};
 	
 	%Connecting nodes
-	\draw  (IMEM.A)  |- (RF.R15)
-	(IMEM.RD) -| (RF.A2);
+	\draw [red] \pin(IMEM.A)  |- \pin(RF.R15)
+	\pin(IMEM.RD) -| \pin(RF.A2);
 \end{marchpicture}

@@ -20,7 +20,8 @@
 
 \newenvironment{marchpicturemini}[1]
 {
-	\begin{tikzpicture}[thick,scale=#1,every node/.style={scale=#1}]
+	\begin{tikzpicture}
+[thick,scale=#1,every node/.style={scale=#1}]
 }
 {	
 	\end{tikzpicture}
@@ -28,7 +29,8 @@
 
 \newenvironment{marchpicture}
 {
-	\begin{tikzpicture}[thick,label]
+	\begin{tikzpicture}
+[thick,label]
 }
 {	
 	\end{tikzpicture}
@@ -50,6 +52,136 @@
         pin distance=#3cm, pin edge={red, }%
     ]#2:#1}](#1){}}
 
+\def\pin(#1){
+	(#1) -- (#1ANCHOR) (#1)
+}
+
+\def\inheritfrom[#1]{%
+	\inheritanchorborder[from=#1]
+	\inheritanchor[from=#1]{center}
+	\inheritanchor[from=#1]{north}
+	\inheritanchor[from=#1]{east}
+	\inheritanchor[from=#1]{south}
+	\inheritanchor[from=#1]{west}
+	\inheritanchor[from=#1]{ne}
+	\inheritanchor[from=#1]{nw}
+	\inheritanchor[from=#1]{sw}
+	\inheritanchor[from=#1]{se}
+	\inheritanchor[from=#1]{text}
+}%
+
+%Definiert oben rechts(x1,y1) und unten links(x2,y2)
+%
+\def\defcorner(#1,#2,#3,#4){
+\savedanchor\northeast{%
+	\pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+	\pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+	\pgf@x=#1\pgf@x
+	\pgf@y=#2\pgf@y
+}
+% This is redundant, but makes some things easier:
+\savedanchor\southwest{%
+	\pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+	\pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+	\pgf@x=#3\pgf@x
+	\pgf@y=#4\pgf@y
+}
+\savedanchor\northwest{%
+	\pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+	\pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+	\pgf@x=#3\pgf@x
+	\pgf@y=#2\pgf@y
+}
+% This is redundant, but makes some things easier:
+\savedanchor\southeast{%
+	\pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
+	\pgfmathsetlength\pgf@y{\pgfshapeminheight}%
+	\pgf@x=#1\pgf@x
+	\pgf@y=#4\pgf@y
+}
+}
+
+\def\defpinleft(#1,#2){
+	\anchor{#1}{
+		\pgf@process{\southwest}%
+		\pgf@xa=1\pgf@x%
+		\advance\pgf@xa by -\pinlength
+		\pgf@x = \pgf@xa
+		\pgf@y=#2\pgf@y%
+	}
+	\anchor{#1ANCHOR}{
+		\pgf@process{\southwest}%
+		\pgf@xa=1\pgf@x%
+		\pgf@x = \pgf@xa
+		\pgf@y=#2\pgf@y%
+	}
+}
+
+\def\defpinright(#1,#2){
+	\anchor{#1}{
+		\pgf@process{\northeast}%
+		\pgf@xa=1\pgf@x%
+		\advance\pgf@xa by +\pinlength
+		\pgf@x = \pgf@xa
+		\pgf@y=#2\pgf@y%
+	}
+	\anchor{#1ANCHOR}{
+		\pgf@process{\northeast}%
+		\pgf@xa=1\pgf@x%
+		\pgf@x = \pgf@xa
+		\pgf@y=#2\pgf@y%
+	}
+}
+
+\def\defpintop(#1,#2){
+	\anchor{#1}{
+		\pgf@process{\northeast}%
+		\pgf@ya=1\pgf@x%
+		\advance\pgf@ya by +\pinlength
+		\pgf@y = \pgf@ya
+		\pgf@x=#2\pgf@x%
+	}
+	\anchor{#1ANCHOR}{
+		\pgf@process{\northeast}%
+		\pgf@xa=1\pgf@x%
+		\pgf@x = \pgf@xa
+		\pgf@y=#2\pgf@y%
+	}
+}
+
+\def\defpinbottom(#1,#2){
+	\anchor{#1}{
+		\pgf@process{\northeast}%
+		\pgf@ya=1\pgf@x%
+		\advance\pgf@ya by -\pinlength
+		\pgf@y = \pgf@ya
+		\pgf@x=#2\pgf@x%
+	}
+	\anchor{#1ANCHOR}{
+		\pgf@process{\northeast}%
+		\pgf@xa=1\pgf@x%
+		\pgf@x = \pgf@xa
+		\pgf@y=#2\pgf@y%
+	}
+}
+
+\def\drawpin(#1,#2){
+	\expandafter\csname pgf@anchor@\pgf@sm@shape@name @#2\endcsname
+	\pgf@ya=\pgf@y \pgf@yb=\pgf@y \pgf@xa=\pgf@x
+	\expandafter\csname pgf@anchor@\pgf@sm@shape@name @#1\endcsname
+	\pgf@xb=\pgf@x 
+	%\pgfmathsetlength\pgf@x{2.7ex}
+	%\advance\pgf@xb by \pgf@x
+	\pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
+	\pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
+}
+
+\def\drawlabelright(#1,#2,#3){
+\expandafter\csname pgf@anchor@\pgf@sm@shape@name @#1\endcsname\pgftext[base,at={\pgfpoint{\pgf@x+\pinlength+#2+\textoffset}{\pgf@y+#3}}]{#1}
+}
+\def\drawlabelleft(#1,#2,#3){
+	\expandafter\csname pgf@anchor@\pgf@sm@shape@name @#1\endcsname\pgftext[base,at={\pgfpoint{\pgf@x-\pinlength-#2-\textoffset}{\pgf@y+#3}}]{#1}
+}
 
 \makeatletter
 
@@ -172,42 +304,34 @@
   }
 }
 
+
+\pgfdeclareshape{base}{
+	% Inherit from rectangle
+	\inheritanchorborder[from=rectangle]
+	
+	% Define same anchor a normal rectangle has
+	\anchor{center}{\pgfpointorigin}
+	\anchor{north}{\northeast \pgf@x=0pt}
+	\anchor{east}{\northeast \pgf@y=0pt}
+	\anchor{south}{\southwest \pgf@x=0pt}
+	\anchor{west}{\southwest \pgf@y=0pt}
+	\anchor{ne}{\northeast}
+	\anchor{nw}{\northeast \pgf@x=-\pgf@x}
+	\anchor{sw}{\southwest}
+	\anchor{se}{\southwest \pgf@x=-\pgf@x}
+	\anchor{text}{
+		\pgfpointorigin
+		\advance\pgf@x by -.5\wd\pgfnodeparttextbox%
+		\advance\pgf@y by -.5\ht\pgfnodeparttextbox%
+		\advance\pgf@y by +.5\dp\pgfnodeparttextbox%
+	}
+}
+
+
 \pgfdeclareshape{reg}{
-  % The 'minimum width' and 'minimum height' keys, not the content, determine
-  % the size
-  \savedanchor\northeast{%
-    \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
-    \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
-    \pgf@x=0.11\pgf@x
-    \pgf@y=0.15\pgf@y
-  }
-  % This is redundant, but makes some things easier:
-  \savedanchor\southwest{%
-    \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
-    \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
-    \pgf@x=-0.11\pgf@x
-    \pgf@y=-0.15\pgf@y
-  }
-  % Inherit from rectangle
-  \inheritanchorborder[from=rectangle]
-
-  % Define same anchor a normal rectangle has
-  \anchor{center}{\pgfpointorigin}
-  \anchor{north}{\northeast \pgf@x=0pt}
-  \anchor{east}{\northeast \pgf@y=0pt}
-  \anchor{south}{\southwest \pgf@x=0pt}
-  \anchor{west}{\southwest \pgf@y=0pt}
-  \anchor{north east}{\northeast}
-  \anchor{north west}{\northeast \pgf@x=-\pgf@x}
-  \anchor{south west}{\southwest}
-  \anchor{south east}{\southwest \pgf@x=-\pgf@x}
-  \anchor{text}{
-    \pgfpointorigin
-    \advance\pgf@x by -.5\wd\pgfnodeparttextbox%
-    \advance\pgf@y by -.5\ht\pgfnodeparttextbox%
-    \advance\pgf@y by +.5\dp\pgfnodeparttextbox%
-  }
-
+  \defcorner(0.5,0.5,-0.5,-0.5)
+  \inheritfrom[base]
+	
   % Define anchors for signal ports
 
   \anchor{CLK}{
@@ -215,23 +339,10 @@
     \pgf@x=0\pgf@x%
     \pgf@y = 1\pgf@y%
   }
-  \anchor{PCS}{
-    \pgf@process{\southwest}%
-    \pgf@xa=1\pgf@x%
-    \advance\pgf@xa by -\pinlength
-    \pgf@x = \pgf@xa
-    \pgf@y=0\pgf@y%
-  }
   
-  \anchor{PC'}{\pgf@anchor@reg@PCS}
+  \defpinleft(PC',0)
   
-  \anchor{PC}{
-    \pgf@process{\northeast}%
-    \pgf@xa=1\pgf@x%
-    \advance\pgf@xa by \pinlength
-    \pgf@x = \pgf@xa
-    \pgf@y=0\pgf@y%
-  }
+  \defpinright(PC,0)
 
   % Draw the rectangle box and the port labels
   \backgroundpath{
@@ -271,26 +382,10 @@
     \pgf@anchor@reg@CLK\pgftext[base,at={\pgfpoint{\pgf@x}{\pgf@y}}]{\raisebox{2.5ex}{CLK}}
 
     %Drawing PC circuit
-    \pgf@anchor@reg@PCS
-    \pgf@ya=\pgf@y \pgf@yb=\pgf@y \pgf@xa=\pgf@x
-    \pgf@anchor@reg@west
-    \pgf@xb=\pgf@x 
-    %\pgfmathsetlength\pgf@x{2.7ex}
-    %\advance\pgf@xb by \pgf@x
-    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
-    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
-    \pgf@anchor@reg@PCS\pgftext[base,at={\pgfpoint{\pgf@x+0.5ex}{\pgf@y}}]{\raisebox{.5ex}{PC'}}
+    \drawpin(west,PC')
 
     %Drawing PC' circuit
-    \pgf@anchor@reg@PC
-    \pgf@ya=\pgf@y \pgf@yb=\pgf@y\pgf@xa=\pgf@x 
-    \pgf@anchor@reg@east
-    \pgf@xb=\pgf@x 
-    %\pgfmathsetlength\pgf@x{2.5ex}
-    %\advance\pgf@xb by \pgf@x
-    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
-    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
-    \pgf@anchor@reg@PC\pgftext[base,at={\pgfpoint{\pgf@x}{\pgf@y}}]{\raisebox{.5ex}{PC}}
+    \drawpin(east,PC)
   }
   
 }
@@ -298,56 +393,12 @@
 \pgfdeclareshape{instmem}{
   % The 'minimum width' and 'minimum height' keys, not the content, determine
   % the size
-  \savedanchor\northeast{%
-    \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
-    \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
-    \pgf@x=0.4\pgf@x
-    \pgf@y=0.25\pgf@y
-  }
-  % This is redundant, but makes some things easier:
-  \savedanchor\southwest{%
-    \pgfmathsetlength\pgf@x{\pgfshapeminwidth}%
-    \pgfmathsetlength\pgf@y{\pgfshapeminheight}%
-    \pgf@x=-0.4\pgf@x
-    \pgf@y=-0.45\pgf@y
-  }
-  % Inherit from rectangle
-  \inheritanchorborder[from=rectangle]
-
-  % Define same anchor a normal rectangle has
-  \anchor{center}{\pgfpointorigin}
-  \anchor{north}{\northeast \pgf@x=0pt}
-  \anchor{east}{\northeast \pgf@y=0pt}
-  \anchor{south}{\southwest \pgf@x=0pt}
-  \anchor{west}{\southwest \pgf@y=0pt}
-  \anchor{north east}{\northeast}
-  \anchor{north west}{\northeast \pgf@x=-\pgf@x}
-  \anchor{south west}{\southwest}
-  \anchor{south east}{\southwest \pgf@x=-\pgf@x}
-  \anchor{text}{
-    \pgfpointorigin
-    \advance\pgf@x by -.5\wd\pgfnodeparttextbox%
-    \advance\pgf@y by -.5\ht\pgfnodeparttextbox%
-    \advance\pgf@y by +.5\dp\pgfnodeparttextbox%
-  }
+  \defcorner(0.4,0.25,-0.4,-0.45)
+  \inheritfrom[base]
 
   % Define anchors for signal ports
-
-  \anchor{A}{
-    \pgf@process{\southwest}%
-    \pgf@xa=1\pgf@x%
-    \advance\pgf@xa by -\pinlength
-    \pgf@x = \pgf@xa
-    \pgf@y=0\pgf@y%
-  }
-  
-  \anchor{RD}{
-    \pgf@process{\northeast}%
-    \pgf@xa=1\pgf@x%
-    \advance\pgf@xa by \pinlength
-    \pgf@x = \pgf@xa
-    \pgf@y=0\pgf@y%
-  }
+	\defpinleft(A,0)
+  	\defpinright(RD,0)
 
   % Draw the rectangle box and the port labels
   \backgroundpath{
@@ -361,30 +412,13 @@
     \pgf@anchor@instmem@center \pgftext[base,at={\pgfpoint{\pgf@x}{\pgf@y}}]{\raisebox{-5.5ex}{Instruction}}
     \pgf@anchor@instmem@center \pgftext[base,at={\pgfpoint{\pgf@x}{\pgf@y}}]{\raisebox{-7.7ex}{Memory}}
 
-    %Drawing A circuit
-    \pgf@anchor@instmem@A
-    \pgf@xa=\pgf@x \pgf@ya=\pgf@y \pgf@yb=\pgf@y
-    \pgf@anchor@instmem@west
-    \pgf@xb=\pgf@x 
-    %\pgfmathsetlength\pgf@x{2.5ex}
-    %\advance\pgf@xb by -\pgf@x
-    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
-    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
-    \pgf@anchor@instmem@A\pgftext[base,at={\pgfpoint{\pgf@x+\pinlength+1ex+\textoffset}{\pgf@y}}]{\raisebox{-0.5ex}{A}}
 
-    %Drawing RD circuit
-    \pgf@anchor@instmem@RD
-    \pgf@xa=\pgf@x \pgf@ya=\pgf@y
-    \pgf@yb=\pgf@y
-    \pgf@anchor@instmem@east
-    \pgf@xb=\pgf@x
-    %\pgfmathsetlength\pgf@x{2.5ex}
-    %\advance\pgf@xb by \pgf@x
-    \pgfpathmoveto{\pgfpoint{\pgf@xa}{\pgf@ya}}
-    \pgfpathlineto{\pgfpoint{\pgf@xb}{\pgf@yb}}
-    \pgf@anchor@instmem@RD\pgftext[base,at={\pgfpoint{\pgf@x-\pinlength-2ex-\textoffset}{\pgf@y}}]{\raisebox{-0.5ex}{RD}}
+	\drawpin(west,A)
+	\drawlabelright(A,1ex,-0.5ex)
+    
+    \drawpin(east,RD)
+    \drawlabelleft(RD,2ex,-0.5ex)
   }
-  
 }
 
 
@@ -1592,8 +1626,8 @@
 height=2.828427125cm,very thick,inner sep=1mm,outer sep=0pt,cap=round,add 
 font=\sffamily}}
 
-\tikzset{every reg node/.style={draw,minimum width=2cm,minimum 
-height=2.828427125cm,thick,inner sep=1mm,outer sep=0pt,cap=round,add 
+\tikzset{every reg node/.style={draw,minimum width=0.4cm,minimum 
+height=0.8cm,thick,inner sep=1mm,outer sep=0pt,cap=round,add 
 font=\sffamily}}
 
 \tikzset{every instmem node/.style={draw,minimum width=2cm,minimum 
