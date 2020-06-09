@@ -4,7 +4,7 @@
 
 
 %\begin{document}
-\begin{marchpicture}
+\begin{marchpicturemini}{0.8}
     \node (CUNIT) [cunitone,azure] at (5cm,5cm){};
     %PC Register
     \node (PC) [reg] at (0,0) {};
@@ -19,7 +19,7 @@
     %Data memory
     \node (DATAMEM) [datamem]  at ($(ALU.OUT) + (2cm,0cm)$) {};
     %PC +4 die zweite
-    \node (PC8) [calcblockmin,rotate=-90]  at ($(RF.PC) + (-1.5cm,0)$) {+};
+    \node (PC8) [calcblockmin,rotate=-90]  at ($(RF.R15) + (-1.5cm,0)$) {+};
     %PC + 4 die erste
     \node (PC4) [calcblockmin,rotate=-90,anchor=OUT]  at ($(PC) + (PC8.IN2) + (-1.6cm,0) $) {+};
     
@@ -36,6 +36,8 @@
     \node at ($(PC8.IN1) + (-1mm,0mm)$) {4};
     \node at ($(PC4.OUT) + (3mm,2mm)$) {\tiny{PCPlus4}};
     \node at ($(PC8.OUT) + (3mm,2mm)$)  {\tiny{PCPlus8}};
+    \node [above] at  (PC.PC)  {PC};
+    \node [above] at  (PC.PC')  {PC'};
     %FETCH PHASE
     \draw [blue]  (PC.PC) |- (INSTMEM.A)
                   (PC.PC) |- (PC4.IN1)
@@ -94,7 +96,7 @@
     
     \path [azure, very thick, line width=3pt] (PC.PC) edge[->] (RF.A1);
     
-    %\path(CUNIT.IN1) \showcoord()<145:0.3>;
+    %\path(RF.WE3) \showcoord()<145:0.3>;
     %\path(MUXPC.IN2) \showcoord()<145:0.3>;
     %\path(MUXPC.OUT) \showcoord()<145:0.3>;
     %Program counter additions
@@ -105,6 +107,6 @@
     %\path(ALU.S) \showcoord(S)<145:0.3>;
     %\graph {(INSTMEM.RD) -- (RF.AONE);};
     %\node [shape=reg] (instmem) at (1,0) {};
-\end{marchpicture}\\
+\end{marchpicturemini}\\
 %\includegraphics[width=15cm]{mikroarch1.png}
 %\end{document}
