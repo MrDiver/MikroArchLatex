@@ -1,0 +1,7 @@
+\begin{marchpicture}
+	\node (IMEM) [instmem]  at (0,0){};
+	% Platzierung rechts neben Instruction Memory
+	\node (RF) [regfile,right=of IMEM] {};
+	% Platziere Alu 0.6cm rechts neben dem anker RD1 des RF und richtet RD1 und IN1 aneinander aus, dass diese Vertikal auf einer Linie sind
+	\node (ALU) [calcblock,ctrls=1,rotate=-90,anchor=IN1] at ($(RF.RD1) + (1cm,0cm)$) {ALU};
+\end{marchpicture}

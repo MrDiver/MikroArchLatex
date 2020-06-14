@@ -69,7 +69,7 @@
 	breaklines=true,
 	breakatwhitespace=true,
 	tabsize=4,
-	mathescape=true
+	%mathescape=true
 }
 
 \begin{document}
@@ -107,10 +107,38 @@ Die Erstellung der Komponenten findet immer in einem \lstinline|marchpicture| od
 
 \subsection{Connecting Nodes}
 
-Jede Node hat eine anzahl von vorgegebenen Ankern, welche zur positionierungg von anderen komponenten oder auch zum pfadzeichnen verwendet werden kann. Die namen der Anker für die Komponenten finden Sie in \ref{components}.
+Jede Node hat eine Anzahl von vorgegebenen Ankern, welche zur Positionierung von anderen Komponenten oder auch zum Pfadzeichnen verwendet werden kann. Die Namen der Anker für die Komponenten finden Sie in \ref{components}.
+
+\textbf{Simple Connection}
 
 \input{examples/connect1}
 \lstinputlisting{examples/connect1.tex}
+
+Das auswählen der Anker kann über den Befehl \lstinline|\pin(PIN)| gemacht werden. Dieser sorgt dafür, dass auch der Pin selbst mit im Pfad vorhanden ist und nicht nur der Endpunkt. Die Pfadzeichnung funktioniert exakt so wie in Tikz. \lstinline|-|| bedeutet das zuerst Horizontal bis zum Zielpunkt gelaufen wird und dann Vertikal und \lstinline||-| exakt andersrum.
+\newpage
+\textbf{Coordinate Mathematics}
+
+\input{examples/connect2}
+\lstinputlisting{examples/connect2.tex}
+
+Hierbei kann eine Rechnung mit Koordinaten in (\$ Expression \$) geschrieben werden, welche sehr praktisch ist um einen Pfad um verschiedene Komponenten zu zeichnen, wenn der platz für eine direkte Verbindung nicht ausreicht. Ansonsten können diese auch zur relativen Positionierung vom Komponenten verwendet werden.
+
+\newpage
+\textbf{Intersection alignment}
+
+\input{examples/connect3}
+\lstinputlisting{examples/connect3.tex}
+
+\subsection{Position Nodes}
+
+\input{examples/position1}
+\lstinputlisting{examples/position1.tex}
+
+Die Komponenten können Exakt und Relativ platziert werden. Um eine Komponente exakt zu Platzieren wird \lstinline|at (x,y)| verwendet.
+
+Um eine Komponente relativ zu platzieren können die Attribute \lstinline|left, right, above, below| verwendet werden.
+
+\newpage
 \section{Reference}
 \subsection{Components}\label{components}
 

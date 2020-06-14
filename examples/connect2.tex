@@ -1,0 +1,9 @@
+\begin{marchpicture}
+	\node (IMEM) [instmem]  at (0,0){};
+	\node (RF) [regfile] at (5,0) {};
+	% Adding some offset value
+	\draw [red] \pin(IMEM.A) |- ($(RF.RD1) + (1cm,-5cm)$);
+	\draw [blue] ($(RF.RD1) + (1cm,-5cm)$) |- \pin(RF.RD1);
+    % Dies kann natürlich auch in einem Pfad geschrieben werden!
+    % \draw  \pin(IMEM.A) |- ($(RF.RD1) + (1cm,-5cm)$) |- \pin(RF.RD1);
+\end{marchpicture}
