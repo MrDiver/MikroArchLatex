@@ -1,0 +1,115 @@
+\documentclass[landscape]{standalone}
+\usepackage{microarch}
+
+\begin{document}
+	\begin{marchpicturemini}{0.8}
+		\node (CUNIT) [cunitone,azure] at (43mm,40mm){};
+
+		%PC Register
+		\node (PC) [reg] at (0,0) {};
+
+		%Instruction memory
+		\node (INSTMEM) [instmem] at ($(PC.PC) + (1.2cm,0cm)$) {};
+
+		%Register file
+		\node (RF) [regfile]  at ($(INSTMEM) + (4.5cm,0cm)$) {};
+
+		%extend immediate
+		\node (EXT) [extend]   at ($(RF) + (0cm,-3cm)$) {};
+
+		%ALU einheit
+		\node (ALU) [calcblock,ctrls=1,rotate=-90,right=of RF.RD1,anchor=IN1] at ($(RF.RD1) + (0.6cm,0cm)$) {ALU};
+
+		%Data memory
+		\node (DATAMEM) [datamem]  at ($(ALU.OUT) + (2cm,0cm)$) {};
+
+		%PC +4 die zweite
+		\node (PC8) [calcblockmin,rotate=-90]  at ($(RF.R15) + (-1.5cm,0)$) {+};
+
+		%PC + 4 die erste
+		\node (PC4) [calcblockmin,rotate=-90,anchor=OUT]  at ($(PC) + (PC8.IN2) + (-1.6cm,0) $) {+};
+
+		\node (MUXPC) [nmux,reverse=1] at ($(PC.PC') + (-5mm,0mm)$) {};
+		\node (MUXA2) [nmux] at ($(RF.A2) + (-5mm,0mm)$) {};
+		\node (MUXSRCB) [nmux,anchor=IN1] at ($(RF.RD2) + (5mm,0mm)$) {};
+		\node (MUXDATA) [nmux] at ($(DATAMEM.RD) + (15mm,-20mm)$) {};
+
+		%Der untere verbindungspunkt fuer writeback
+		\coordinate (LOOPBACK) at ($ (RF.WD3) + (-0.5cm,-2.5cm)$);
+		\coordinate (PC4CONNECT) at ($ (PC4.OUT) + (3mm,0mm)$);
+
+		\node at ($(PC4.IN2) + (-1mm,0mm)$) {4};
+		\node at ($(PC8.IN1) + (-1mm,0mm)$) {4};
+		\node at ($(PC4.OUT) + (3mm,2mm)$) {\tiny{PCPlus4}};
+		\node at ($(PC8.OUT) + (3mm,2mm)$)  {\tiny{PCPlus8}};
+		\node [above] at  (PC.PC)  {PC};
+		\node [above] at  (PC.PC')  {PC'};
+
+		%FETCH PHASE
+		\draw [blue]
+			\pin(PC.PC) |- \pin(INSTMEM.A)
+			\pin(PC.PC) |- (PC4.IN1)
+			(MUXPC.OUT) |- \pin(PC.PC')
+			(PC4.OUT) |- (PC4CONNECT)
+			(PC4CONNECT) |- ++(0mm,-1cm) -| (MUXPC.IN1)
+			(PC4CONNECT) -| ($(PC4CONNECT) + (10mm,0mm)$) |- (PC8.IN2);
+
+		%DECODE PHASE
+		\draw [red]
+			\pin(INSTMEM.RD) |- node[midway,above right]{\tiny 31:28} (CUNIT.COND)
+			\pin(INSTMEM.RD) |- node[midway,above right]{\tiny 27:26} (CUNIT.OP)
+			\pin(INSTMEM.RD) |- node[midway,above right]{\tiny 25:20} (CUNIT.FUNCT)
+			\pin(INSTMEM.RD) |- node[midway,above right]{\tiny 15:12} (CUNIT.RD)
+			\pin(INSTMEM.RD) |- node[midway,above right]{\tiny 19:16} \pin(RF.A1) node[above]{RA1}
+			\pin(INSTMEM.RD) |- node[midway,above right]{\tiny 3:0}  (MUXA2.IN1)
+			(MUXA2.OUT)  |- (RF.A2) node[above]{RA2}
+			(MUXA2.IN2)  |- (MUXA2.IN2 |- RF.A3)
+			\pin(INSTMEM.RD) |- node[midway,above right]{\tiny 15:12} \pin(RF.A3)
+			\pin(INSTMEM.RD) |- node[midway,above right]{\tiny 11:0} \pin(EXT.IN)
+			(PC8.OUT) |- \pin(RF.R15);
+
+		%EXECUTE PHASE
+		\draw [magenta!60!black]
+			\pin(RF.RD1) -- +(1,0) |- (ALU.IN1) node[above]{SrcA}
+			\pin(EXT.OUT) -- +(2mm,0) -| (MUXSRCB.IN2)
+			\pin(RF.RD2) -| (MUXSRCB.IN1)
+			(MUXSRCB.IN1) + (-1.5mm,0) |- node[above,xshift=29mm] {WriteData} \pin(DATAMEM.WD)
+			(MUXSRCB.OUT) |- (ALU.IN2)  node[above]{SrcB}
+			(EXT.OUT) +(2mm,0) node[below]{ExtImm}
+			(ALU.OUT) -- node[above] {ALUResult} +(1,0)-|  \pin(DATAMEM.A)
+			\pin(DATAMEM.A) + (-1.25mm,0) |- (MUXDATA.IN2)
+			\pin(DATAMEM.RD) -- node[above] {ReadData} ++(0.6cm,0) |- (MUXDATA.IN1)
+			(MUXDATA.OUT) |- node[above,xshift=-5mm] {Result} (LOOPBACK) |- \pin(RF.WD3)
+			(MUXPC.IN2)  -- +(-5mm,0mm) |- (LOOPBACK)
+			;
+
+		%CONTROL SIGNALS
+		\def\ctrlheight{1.5cm}
+		\def\textyshift{1.5mm}
+		\coordinate(EXTCONNECT) at ($(EXT.S)+(12.5mm,5mm)$);
+		\draw [azure]
+			%PCSrc
+			coordinate (tPC) at (RF.WE3 |- 0,65mm)
+			(MUXPC.S) -- (MUXPC.S |- 0,\ctrlheight) |- (tPC)          |- (CUNIT.INR1) node [anchor=west,yshift=\textyshift] {PCSrc}
+			%RegSrc
+			(MUXA2.S) -- (MUXA2.S |- 0,25mm) node [below right] {RegSrc}
+			%RegWrite
+			\pin(RF.WE3)                                              |- (CUNIT.INR7) node [anchor=west,yshift=\textyshift] {RegWrite}
+			%ImmSrc
+			(EXT.S) |- (EXTCONNECT) |- (EXTCONNECT |-  0,\ctrlheight) |- (CUNIT.INR6) node [anchor=west,yshift=\textyshift] {ImmSrc}
+			%ALUSrc
+			(MUXSRCB.S) |- (MUXSRCB.S |-  0,\ctrlheight)              |- (CUNIT.INR5) node [anchor=west,yshift=\textyshift] {ALUSrc}
+			%ALUControl
+			(ALU.S) |- (ALU.S |-  0,\ctrlheight)                      |- (CUNIT.INR4) node [anchor=west,yshift=\textyshift] {ALUControl}
+			%ALUControl
+			coordinate (t11) at ($(ALU.F)+(7mm,0)$)
+			coordinate (FS1) at (t11 |- 0,\ctrlheight)
+			coordinate (FS2) at (PC8 |- 0,\ctrlheight)
+			(ALU.F) -| (FS1) node [above] {ALUFlags} -- (FS2)         |- (CUNIT.FLAGS)
+			%MemWrite
+			\pin(DATAMEM.WE) |- (DATAMEM.WE |-  0,\ctrlheight)        |- (CUNIT.INR3) node [anchor=west,yshift=\textyshift] {MemWrite}
+			%MemToReg
+			(MUXDATA.S) |- (MUXDATA.S |-  0,\ctrlheight)              |- (CUNIT.INR2) node [anchor=west,yshift=\textyshift] {MemtoReg} ;
+
+	\end{marchpicturemini}
+\end{document}
